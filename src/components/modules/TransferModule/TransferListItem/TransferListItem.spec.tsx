@@ -26,7 +26,6 @@ describe("TransferListItem", () => {
     defaultProps = {
       item: REPLICA_MOCK,
       selected: false,
-      image: "image",
       userNameLoading: false,
       onSelectedChange: jest.fn(),
       endpointType: jest.fn(),

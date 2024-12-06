@@ -1,6 +1,6 @@
 import {
-  MigrationItem,
-  MigrationItemDetails,
+  DeploymentItem,
+  DeploymentItemDetails,
   TransferItem,
   TransferItemDetails,
 } from "@src/@types/MainItem";
@@ -10,7 +10,7 @@ import { INSTANCE_MOCK } from "@tests/mocks/InstancesMock";
 export const REPLICA_MOCK: TransferItem = {
   id: "replica-id",
   name: "replica-name",
-  type: "replica",
+  type: "transfer",
   scenario: "replica",
   description: "replica-description",
   notes: "replica-notes",
@@ -71,10 +71,12 @@ export const REPLICA_ITEM_DETAILS_MOCK: TransferItemDetails = {
   executions: [EXECUTION_MOCK],
 };
 
-export const MIGRATION_MOCK: MigrationItem = {
+export const MIGRATION_MOCK: DeploymentItem = {
   id: "migration-id",
   name: "migration-name",
-  type: "migration",
+  type: "deployment",
+  transfer_id: "migration-transfer-id",
+  transfer_scenario_type: "migration-scenario",
   description: "migration-description",
   notes: "migration-notes",
   created_at: "2023-11-26T12:00:00Z",
@@ -92,11 +94,12 @@ export const MIGRATION_MOCK: MigrationItem = {
   user_id: "user-id",
 };
 
-export const DEPLOYMENT_MOCK: DEPLOYMENT_ITEM = {
+export const DEPLOYMENT_MOCK: DeploymentItem = {
   id: "deployment-id",
   name: "deployment-name",
   type: "deployment",
-  replica_scenario_type: "replica",
+  transfer_id: "deployment-transfer-id",
+  transfer_scenario_type: "replica",
   description: "deployment-description",
   notes: "deployment-notes",
   created_at: "2023-11-26T12:00:00Z",
@@ -114,7 +117,7 @@ export const DEPLOYMENT_MOCK: DEPLOYMENT_ITEM = {
   user_id: "user-id",
 };
 
-export const MIGRATION_ITEM_DETAILS_MOCK: MigrationItemDetails = {
+export const MIGRATION_ITEM_DETAILS_MOCK: DeploymentItemDetails = {
   ...MIGRATION_MOCK,
   tasks: [{ ...TASK_MOCK, task_type: "migration_task" }],
 };

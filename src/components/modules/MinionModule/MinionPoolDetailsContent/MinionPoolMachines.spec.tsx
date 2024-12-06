@@ -30,7 +30,7 @@ describe("MinionPoolMachines", () => {
     defaultProps = {
       item: MINION_POOL_MOCK,
       transfers: [REPLICA_MOCK],
-      migrations: [MIGRATION_MOCK],
+      deployments: [MIGRATION_MOCK],
     };
   });
 

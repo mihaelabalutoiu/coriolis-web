@@ -45,7 +45,7 @@ describe("MinionPoolDetailsContent", () => {
       item: MINION_POOL_DETAILS_MOCK,
       itemId: "minion-pool-id",
       transfers: [REPLICA_MOCK],
-      migrations: [],
+      deployments: [],
       endpoints: [OPENSTACK_ENDPOINT_MOCK],
       schema: [
         {
