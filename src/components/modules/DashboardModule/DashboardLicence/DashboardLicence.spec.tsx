@@ -68,14 +68,14 @@ describe("DashboardLicence", () => {
     expect(
       TestUtils.selectAll("DashboardLicence__ChartHeaderCurrent-")[0]
         .textContent
-    ).toBe("5 Fulfilled Replicas ");
+    ).toBe("5 Used Replicas ");
     expect(
       TestUtils.selectAll("DashboardLicence__ChartHeaderTotal-")[0].textContent
     ).toBe("Total 10");
     expect(
       TestUtils.selectAll("DashboardLicence__ChartHeaderCurrent-")[1]
         .textContent
-    ).toBe("3 Fulfilled Migrations ");
+    ).toBe("3 Used Migrations ");
     expect(
       TestUtils.selectAll("DashboardLicence__ChartHeaderTotal-")[1].textContent
     ).toBe("Total 5");
@@ -109,7 +109,7 @@ describe("DashboardLicence", () => {
     expect(TestUtils.select("DashboardLicence__LicenceError-")).toBeTruthy();
     expect(
       TestUtils.select("DashboardLicence__LicenceError-")?.textContent
-    ).toContain("Please contact Cloudbase Solutions with your Appliance ID");
+    ).toContain("Please contact your Coriolis representative with the Appliance ID");
     expect(
       TestUtils.select("DashboardLicence__ApplianceId-")?.textContent
     ).toBe("Appliance ID:test-id-licencev2");
@@ -176,6 +176,6 @@ describe("DashboardLicence", () => {
     expect(
       TestUtils.selectAll("DashboardLicence__ChartHeaderCurrent-")[0]
         .textContent
-    ).toBe("1 Fulfilled Replica ");
+    ).toBe("1 Used Replica ");
   });
 });
