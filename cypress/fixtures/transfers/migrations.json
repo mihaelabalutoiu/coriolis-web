@@ -1,5 +1,5 @@
 {
-  "migrations": [
+  "deployments": [
     {
       "base_id": "549caaa0-e84e-43b3-b5fc-c28f51ceb6a0",
       "user_id": "eff03964a29b4f89b9fefc4c16de5f4f",
@@ -17,14 +17,28 @@
           "VM Network": "default"
         },
         "storage_mappings": {
-          "default": "remote"
+          "default": "remote",
+          "backend_mappings": [
+            {
+              "source": "datastore0",
+              "destination": "remote"
+            }
+          ],
+          "disk_mappings": [
+            {
+              "disk_id": "2000",
+              "destination": "remote"
+            }
+          ]
         }
       },
-      "type": "migration",
+      "type": "deployment",
       "executions": [],
-      "instances": ["Datacenter/ol88-bios"],
+      "instances": [
+        "Datacenter/ol88-bios"
+      ],
       "reservation_id": "f8f94f7d-07b5-4e78-aee7-2935a8683c10",
-      "notes": "",
+      "notes": "ol88-bios",
       "origin_endpoint_id": "f8fd5f35-2c54-4786-b32d-8f6fb3b057e7",
       "destination_endpoint_id": "72ebf901-85c8-4a7a-9842-cb058c38b65d",
       "transfer_result": null,
@@ -32,7 +46,19 @@
         "VM Network": "default"
       },
       "storage_mappings": {
-        "default": "remote"
+        "default": "remote",
+        "backend_mappings": [
+          {
+            "source": "datastore0",
+            "destination": "remote"
+          }
+        ],
+        "disk_mappings": [
+          {
+            "disk_id": "2000",
+            "destination": "remote"
+          }
+        ]
       },
       "source_environment": {
         "automatically_enable_cbt": true,
@@ -48,9 +74,9 @@
       "instance_osmorphing_minion_pool_mappings": {},
       "user_scripts": {},
       "id": "549caaa0-e84e-43b3-b5fc-c28f51ceb6a0",
-      "replica_id": null,
-      "shutdown_instances": false,
-      "replication_count": 2
+      "transfer_id": "a9868952-85bf-48d7-bde4-bc866745c124",
+      "transfer_scenario_type": "live_migration",
+      "shutdown_instances": false
     },
     {
       "base_id": "760b955c-f321-45f6-aa2f-3bb8d298d43d",
@@ -69,14 +95,28 @@
           "VM Network": "default"
         },
         "storage_mappings": {
-          "default": "remote"
+          "default": "remote",
+          "backend_mappings": [
+            {
+              "source": "datastore0",
+              "destination": "remote"
+            }
+          ],
+          "disk_mappings": [
+            {
+              "disk_id": "2000",
+              "destination": "remote"
+            }
+          ]
         }
       },
-      "type": "migration",
+      "type": "deployment",
       "executions": [],
-      "instances": ["Datacenter/ol88-uefi"],
+      "instances": [
+        "Datacenter/ol88-uefi"
+      ],
       "reservation_id": "91a77449-7ada-4e03-8f4f-438445aaadb3",
-      "notes": null,
+      "notes": "ol88-uefi",
       "origin_endpoint_id": "f8fd5f35-2c54-4786-b32d-8f6fb3b057e7",
       "destination_endpoint_id": "72ebf901-85c8-4a7a-9842-cb058c38b65d",
       "transfer_result": null,
@@ -84,7 +124,19 @@
         "VM Network": "default"
       },
       "storage_mappings": {
-        "default": "remote"
+        "default": "remote",
+        "backend_mappings": [
+          {
+            "source": "datastore0",
+            "destination": "remote"
+          }
+        ],
+        "disk_mappings": [
+          {
+            "disk_id": "2000",
+            "destination": "remote"
+          }
+        ]
       },
       "source_environment": {
         "automatically_enable_cbt": true,
@@ -100,9 +152,9 @@
       "instance_osmorphing_minion_pool_mappings": {},
       "user_scripts": {},
       "id": "760b955c-f321-45f6-aa2f-3bb8d298d43d",
-      "replica_id": null,
-      "shutdown_instances": false,
-      "replication_count": 2
+      "transfer_id": null,
+      "transfer_scenario_type": "live_migration",
+      "shutdown_instances": false
     },
     {
       "base_id": "97add5e0-cbf2-4f1d-94ff-bb2aa8d05295",
@@ -121,14 +173,28 @@
           "VM Network": "default"
         },
         "storage_mappings": {
-          "default": "remote"
+          "default": "remote",
+          "backend_mappings": [
+            {
+              "source": "datastore0",
+              "destination": "remote"
+            }
+          ],
+          "disk_mappings": [
+            {
+              "disk_id": "2000",
+              "destination": "remote"
+            }
+          ]
         }
       },
-      "type": "migration",
+      "type": "deployment",
       "executions": [],
-      "instances": ["Datacenter/ol88-bios"],
+      "instances": [
+        "Datacenter/ol88-bios"
+      ],
       "reservation_id": "e3fbc524-c5af-46bc-a4e5-01697539fb0b",
-      "notes": "",
+      "notes": "ol88-bios",
       "origin_endpoint_id": "f8fd5f35-2c54-4786-b32d-8f6fb3b057e7",
       "destination_endpoint_id": "72ebf901-85c8-4a7a-9842-cb058c38b65d",
       "transfer_result": null,
@@ -136,7 +202,19 @@
         "VM Network": "default"
       },
       "storage_mappings": {
-        "default": "remote"
+        "default": "remote",
+        "backend_mappings": [
+          {
+            "source": "datastore0",
+            "destination": "remote"
+          }
+        ],
+        "disk_mappings": [
+          {
+            "disk_id": "2000",
+            "destination": "remote"
+          }
+        ]
       },
       "source_environment": {
         "automatically_enable_cbt": true,
@@ -152,61 +230,9 @@
       "instance_osmorphing_minion_pool_mappings": {},
       "user_scripts": {},
       "id": "97add5e0-cbf2-4f1d-94ff-bb2aa8d05295",
-      "replica_id": null,
-      "shutdown_instances": false,
-      "replication_count": 2
-    },
-    {
-      "base_id": "9aad18e1-4c20-4a98-b16f-7a2f7655d18e",
-      "user_id": "eff03964a29b4f89b9fefc4c16de5f4f",
-      "project_id": "a379d2b6bd8d4b898733fb1e1b7967f7",
-      "destination_environment": {
-        "migr_worker_cpu_limit": 2,
-        "migr_worker_memory_limit": 4,
-        "use_network_forwarding": true,
-        "retain_user_credentials": true,
-        "migr_network": "default",
-        "migr_image_map": {
-          "linux": "1e5c8a4627a4121bbde2749e4e6fbb313dba3052e2053c3f3f624e0543724cba"
-        },
-        "network_map": {
-          "VM Network": "default"
-        },
-        "storage_mappings": {
-          "default": "remote"
-        }
-      },
-      "type": "migration",
-      "executions": [],
-      "instances": ["Datacenter/ol88-bios"],
-      "reservation_id": "fb44d241-8c97-4687-891f-2a3a21ba85d0",
-      "notes": "",
-      "origin_endpoint_id": "f8fd5f35-2c54-4786-b32d-8f6fb3b057e7",
-      "destination_endpoint_id": "72ebf901-85c8-4a7a-9842-cb058c38b65d",
-      "transfer_result": null,
-      "network_map": {
-        "VM Network": "default"
-      },
-      "storage_mappings": {
-        "default": "remote"
-      },
-      "source_environment": {
-        "automatically_enable_cbt": true,
-        "vixdisklib_compatibility_version": "6.7"
-      },
-      "last_execution_status": "COMPLETED",
-      "created_at": "2023-09-23T19:30:33.000000",
-      "updated_at": "2023-09-23T19:45:56.000000",
-      "deleted_at": null,
-      "deleted": "0",
-      "origin_minion_pool_id": null,
-      "destination_minion_pool_id": null,
-      "instance_osmorphing_minion_pool_mappings": {},
-      "user_scripts": {},
-      "id": "9aad18e1-4c20-4a98-b16f-7a2f7655d18e",
-      "replica_id": null,
-      "shutdown_instances": false,
-      "replication_count": 2
+      "transfer_id": "a9868952-85bf-48d7-bde4-bc866745c124",
+      "transfer_scenario_type": "live_migration",
+      "shutdown_instances": false
     },
     {
       "base_id": "d8ad2fe7-57ef-4940-ae80-c392383831b5",
@@ -225,14 +251,28 @@
           "VM Network": "default"
         },
         "storage_mappings": {
-          "default": "remote"
+          "default": "remote",
+          "backend_mappings": [
+            {
+              "source": "datastore0",
+              "destination": "remote"
+            }
+          ],
+          "disk_mappings": [
+            {
+              "disk_id": "2000",
+              "destination": "remote"
+            }
+          ]
         }
       },
-      "type": "migration",
+      "type": "deployment",
       "executions": [],
-      "instances": ["Datacenter/ol88-bios"],
+      "instances": [
+        "Datacenter/ol88-bios"
+      ],
       "reservation_id": "28c1a203-22da-49a6-9a49-134069eb5e20",
-      "notes": "",
+      "notes": "ol88-bios",
       "origin_endpoint_id": "f8fd5f35-2c54-4786-b32d-8f6fb3b057e7",
       "destination_endpoint_id": "72ebf901-85c8-4a7a-9842-cb058c38b65d",
       "transfer_result": {
@@ -242,6 +282,7 @@
           "name": "ol88-bios",
           "id": "ol88-bios",
           "firmware_type": "EFI",
+          "secure_boot": false,
           "os_type": "linux",
           "nested_virtualization": false,
           "devices": {
@@ -268,7 +309,10 @@
                 "id": "eth0",
                 "name": "eth0",
                 "mac_address": "00:x:x:x:x:b0",
-                "ip_addresses": ["10.x.x.6", "fd42:x:x:x:x:x:x:c1b0"],
+                "ip_addresses": [
+                  "10.x.x.6",
+                  "fd42:x:x:x:x:x:x:c1b0"
+                ],
                 "network_name": "tapff00339e",
                 "network_id": "tapff00339e"
               }
@@ -281,7 +325,19 @@
         "VM Network": "default"
       },
       "storage_mappings": {
-        "default": "remote"
+        "default": "remote",
+        "backend_mappings": [
+          {
+            "source": "datastore0",
+            "destination": "remote"
+          }
+        ],
+        "disk_mappings": [
+          {
+            "disk_id": "2000",
+            "destination": "remote"
+          }
+        ]
       },
       "source_environment": {
         "automatically_enable_cbt": true,
@@ -297,9 +353,9 @@
       "instance_osmorphing_minion_pool_mappings": {},
       "user_scripts": {},
       "id": "d8ad2fe7-57ef-4940-ae80-c392383831b5",
-      "replica_id": null,
-      "shutdown_instances": false,
-      "replication_count": 2
+      "transfer_id": "a9868952-85bf-48d7-bde4-bc866745c124",
+      "transfer_scenario_type": "live_migration",
+      "shutdown_instances": false
     },
     {
       "base_id": "e25ffdc0-c81a-4003-a2d6-2592bdc19c9d",
@@ -318,14 +374,28 @@
           "VM Network": "default"
         },
         "storage_mappings": {
-          "default": "remote"
+          "default": "remote",
+          "backend_mappings": [
+            {
+              "source": "datastore0",
+              "destination": "remote"
+            }
+          ],
+          "disk_mappings": [
+            {
+              "disk_id": "2000",
+              "destination": "remote"
+            }
+          ]
         }
       },
-      "type": "migration",
+      "type": "deployment",
       "executions": [],
-      "instances": ["Datacenter/ol88-bios"],
+      "instances": [
+        "Datacenter/ol88-bios"
+      ],
       "reservation_id": "c791029e-8f58-4c34-bc37-abc2427ab1e6",
-      "notes": "",
+      "notes": "ol88-bios",
       "origin_endpoint_id": "f8fd5f35-2c54-4786-b32d-8f6fb3b057e7",
       "destination_endpoint_id": "72ebf901-85c8-4a7a-9842-cb058c38b65d",
       "transfer_result": {
@@ -335,6 +405,7 @@
           "name": "ol88-bios",
           "id": "ol88-bios",
           "firmware_type": "EFI",
+          "secure_boot": false,
           "os_type": "linux",
           "nested_virtualization": false,
           "devices": {
@@ -361,7 +432,10 @@
                 "id": "eth0",
                 "name": "eth0",
                 "mac_address": "00:x:x:x:x:f4",
-                "ip_addresses": ["10.x.x.x", "fd42:x:x:x:x:x:x:79f4"],
+                "ip_addresses": [
+                  "10.x.x.x",
+                  "fd42:x:x:x:x:x:x:79f4"
+                ],
                 "network_name": "tapx10",
                 "network_id": "tapx10"
               }
@@ -374,7 +448,19 @@
         "VM Network": "default"
       },
       "storage_mappings": {
-        "default": "remote"
+        "default": "remote",
+        "backend_mappings": [
+          {
+            "source": "datastore0",
+            "destination": "remote"
+          }
+        ],
+        "disk_mappings": [
+          {
+            "disk_id": "2000",
+            "destination": "remote"
+          }
+        ]
       },
       "source_environment": {
         "automatically_enable_cbt": true,
@@ -390,9 +476,9 @@
       "instance_osmorphing_minion_pool_mappings": {},
       "user_scripts": {},
       "id": "e25ffdc0-c81a-4003-a2d6-2592bdc19c9d",
-      "replica_id": null,
-      "shutdown_instances": false,
-      "replication_count": 2
+      "transfer_id": null,
+      "transfer_scenario_type": "live_migration",
+      "shutdown_instances": false
     }
   ]
 }

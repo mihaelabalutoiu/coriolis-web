@@ -1,5 +1,5 @@
 {
-  "replicas": [
+  "transfers": [
     {
       "base_id": "5395842a-7006-41a3-95ac-e5083561a4d9",
       "user_id": "eff03964a29b4f89b9fefc4c16de5f4f",
@@ -17,9 +17,11 @@
         },
         "storage_mappings": {}
       },
-      "type": "replica",
+      "type": "transfer",
       "executions": [],
-      "instances": ["Datacenter/dvincze-ol9-bios"],
+      "instances": [
+        "Datacenter/dvincze-ol9-bios"
+      ],
       "reservation_id": "3e147d9c-7259-48a6-bf73-db399e972bae",
       "notes": "dvincze-ol9-bios",
       "origin_endpoint_id": "f8fd5f35-2c54-4786-b32d-8f6fb3b057e7",
@@ -42,7 +44,8 @@
       "destination_minion_pool_id": null,
       "instance_osmorphing_minion_pool_mappings": {},
       "user_scripts": {},
-      "id": "5395842a-7006-41a3-95ac-e5083561a4d9"
+      "id": "5395842a-7006-41a3-95ac-e5083561a4d9",
+      "scenario": "live_migration"
     },
     {
       "base_id": "a9868952-85bf-48d7-bde4-bc866745c124",
@@ -61,12 +64,26 @@
           "VM Network": "default"
         },
         "storage_mappings": {
-          "default": "remote"
+          "default": "remote",
+          "backend_mappings": [
+            {
+              "source": "datastore0",
+              "destination": "remote"
+            }
+          ],
+          "disk_mappings": [
+            {
+              "disk_id": "2000",
+              "destination": "remote"
+            }
+          ]
         }
       },
-      "type": "replica",
+      "type": "transfer",
       "executions": [],
-      "instances": ["Datacenter/ol88-bios"],
+      "instances": [
+        "Datacenter/ol88-bios"
+      ],
       "reservation_id": "09ee12d0-f0d0-4603-949e-6312f17430a8",
       "notes": "ol88-bios",
       "origin_endpoint_id": "f8fd5f35-2c54-4786-b32d-8f6fb3b057e7",
@@ -76,7 +93,19 @@
         "VM Network": "default"
       },
       "storage_mappings": {
-        "default": "remote"
+        "default": "remote",
+        "backend_mappings": [
+          {
+            "source": "datastore0",
+            "destination": "remote"
+          }
+        ],
+        "disk_mappings": [
+          {
+            "disk_id": "2000",
+            "destination": "remote"
+          }
+        ]
       },
       "source_environment": {
         "automatically_enable_cbt": true,
@@ -91,7 +120,8 @@
       "destination_minion_pool_id": null,
       "instance_osmorphing_minion_pool_mappings": {},
       "user_scripts": {},
-      "id": "a9868952-85bf-48d7-bde4-bc866745c124"
+      "id": "a9868952-85bf-48d7-bde4-bc866745c124",
+      "scenario": "live_migration"
     }
   ]
 }
