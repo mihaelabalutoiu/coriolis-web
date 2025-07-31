@@ -138,7 +138,7 @@ export const fieldsToPayload = (
   Object.keys(usableSchema.properties).forEach(fieldName => {
     if (data[fieldName] !== undefined && typeof data[fieldName] !== "object") {
       info[fieldName] = Utils.trim(fieldName, data[fieldName]);
-    } else if (typeof usableSchema.properties[fieldName] === "object") {
+    } else if (usableSchema.properties[fieldName].type === "object") {
       const properties =
         usableSchema.properties[fieldName] &&
         usableSchema.properties[fieldName].properties;
@@ -154,15 +154,16 @@ export const fieldsToPayload = (
         });
       }
     } else if (
-      !data[fieldName] &&
+      data[fieldName] !== undefined &&
       usableSchema.required &&
       usableSchema.required.find((f: string) => f === fieldName) &&
-      usableSchema.properties[fieldName].default
+      usableSchema.properties[fieldName].default !== undefined
     ) {
       info[fieldName] = usableSchema.properties[fieldName].default;
     }
   });
 
+  console.log("fieldsToPayload - Final info object:", info);
   return info;
 };
 
