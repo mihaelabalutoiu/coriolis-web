@@ -20,7 +20,7 @@ import Button from "@src/components/ui/Button";
 import DetailsNavigation from "@src/components/modules/NavigationModule/DetailsNavigation";
 import type { Endpoint } from "@src/@types/Endpoint";
 import type { Field } from "@src/@types/Field";
-import { ReplicaItem, MigrationItem } from "@src/@types/MainItem";
+import { TransferItem, DeploymentItem } from "@src/@types/MainItem";
 import { MinionPoolDetails } from "@src/@types/MinionPool";
 import StatusImage from "@src/components/ui/StatusComponents/StatusImage";
 import { ThemeProps } from "@src/components/Theme";
@@ -75,8 +75,8 @@ const NavigationItems = [
 type Props = {
   item?: MinionPoolDetails | null;
   itemId: string;
-  replicas: ReplicaItem[];
-  migrations: MigrationItem[];
+  transfers: TransferItem[];
+  deployments: DeploymentItem[];
   endpoints: Endpoint[];
   schema: Field[];
   schemaLoading: boolean;
@@ -89,7 +89,7 @@ type Props = {
 class MinionPoolDetailsContent extends React.Component<Props> {
   isEndpointMissing() {
     const endpoint = this.props.endpoints.find(
-      e => e.id === this.props.item?.endpoint_id
+      e => e.id === this.props.item?.endpoint_id,
     );
 
     return Boolean(!endpoint);
@@ -144,8 +144,8 @@ class MinionPoolDetailsContent extends React.Component<Props> {
     return (
       <MinionPoolMachines
         item={this.props.item}
-        replicas={this.props.replicas}
-        migrations={this.props.migrations}
+        transfers={this.props.transfers}
+        deployments={this.props.deployments}
       />
     );
   }
@@ -166,8 +166,8 @@ class MinionPoolDetailsContent extends React.Component<Props> {
     return (
       <MinionPoolMainDetails
         item={this.props.item}
-        replicas={this.props.replicas}
-        migrations={this.props.migrations}
+        transfers={this.props.transfers}
+        deployments={this.props.deployments}
         schema={this.props.schema}
         schemaLoading={this.props.schemaLoading}
         endpoints={this.props.endpoints}

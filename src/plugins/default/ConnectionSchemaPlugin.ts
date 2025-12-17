@@ -25,7 +25,7 @@ import { Endpoint } from "@src/@types/Endpoint";
 export const defaultSchemaToFields = (
   schema: SchemaProperties,
   schemaDefinitions?: SchemaDefinitions | null,
-  dictionaryKey?: string
+  dictionaryKey?: string,
 ): any[] => {
   if (!schema.properties) {
     return [];
@@ -36,7 +36,7 @@ export const defaultSchemaToFields = (
 
     if (typeof properties.$ref === "string" && schemaDefinitions) {
       const definitionName = properties.$ref.substr(
-        properties.$ref.lastIndexOf("/") + 1
+        properties.$ref.lastIndexOf("/") + 1,
       );
       properties = schemaDefinitions[definitionName];
       return {
@@ -62,7 +62,7 @@ export const defaultSchemaToFields = (
     const name = fieldName;
     LabelDictionary.pushToCache(
       { name, title: properties.title, description: properties.description },
-      dictionaryKey || ""
+      dictionaryKey || "",
     );
 
     return {
@@ -131,14 +131,14 @@ export const generateBaseFields = () => [
 
 export const fieldsToPayload = (
   data: { [prop: string]: any },
-  schema: SchemaProperties
+  schema: SchemaProperties,
 ) => {
   const info: any = {};
   const usableSchema: any = schema;
   Object.keys(usableSchema.properties).forEach(fieldName => {
-    if (data[fieldName] && typeof data[fieldName] !== "object") {
+    if (data[fieldName] !== undefined && typeof data[fieldName] !== "object") {
       info[fieldName] = Utils.trim(fieldName, data[fieldName]);
-    } else if (typeof usableSchema.properties[fieldName] === "object") {
+    } else if (usableSchema.properties[fieldName].type === "object") {
       const properties =
         usableSchema.properties[fieldName] &&
         usableSchema.properties[fieldName].properties;
@@ -154,10 +154,8 @@ export const fieldsToPayload = (
         });
       }
     } else if (
-      !data[fieldName] &&
-      usableSchema.required &&
-      usableSchema.required.find((f: string) => f === fieldName) &&
-      usableSchema.properties[fieldName].default
+      data[fieldName] === undefined &&
+      usableSchema.properties[fieldName].default !== undefined
     ) {
       info[fieldName] = usableSchema.properties[fieldName].default;
     }

@@ -15,24 +15,17 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import { DateTime } from "luxon";
 import React from "react";
 
-import { MigrationItem, ReplicaItem } from "@src/@types/MainItem";
+import { TransferItem } from "@src/@types/MainItem";
 import { render } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import TestUtils from "@tests/TestUtils";
 
 import DashboardExecutions from "./DashboardExecutions";
 
-type BuildType<T extends "replica" | "migration"> = T extends "replica"
-  ? ReplicaItem
-  : MigrationItem;
-
-const buildItem = <T extends "replica" | "migration">(
-  type: T,
-  date: string
-): BuildType<T> => {
-  const item = {
+const transferItem = (scenario: string, date: string): TransferItem => {
+  return {
     id: "",
-    type,
+    type: "transfer",
     name: "",
     created_at: date,
     updated_at: date,
@@ -48,19 +41,21 @@ const buildItem = <T extends "replica" | "migration">(
     transfer_result: null,
     last_execution_status: "",
     user_id: "",
+    clone_disks: false,
+    skip_os_morphing: false,
+    scenario,
   };
-  return item as BuildType<T>;
 };
 const now = DateTime.utc();
 const TWENTIETH = DateTime.utc(now.year, now.month, 20, 10, 0);
 const replicas: DashboardExecutions["props"]["replicas"] = [
-  buildItem("replica", TWENTIETH.minus({ days: 5 }).toISO()!),
-  buildItem("replica", TWENTIETH.toISO()!),
+  transferItem("replica", TWENTIETH.minus({ days: 5 }).toISO()!),
+  transferItem("replica", TWENTIETH.toISO()!),
 ];
 
 const migrations: DashboardExecutions["props"]["migrations"] = [
-  buildItem("migration", TWENTIETH.toISO()!),
-  buildItem("migration", TWENTIETH.minus({ months: 2 }).toISO()!),
+  transferItem("live_migration", TWENTIETH.toISO()!),
+  transferItem("live_migration", TWENTIETH.minus({ months: 2 }).toISO()!),
 ];
 
 describe("DashboardExecutions", () => {
@@ -83,39 +78,39 @@ describe("DashboardExecutions", () => {
     render(<DashboardExecutions {...newProps} />);
 
     expect(TestUtils.select("DashboardExecutions__Title")?.textContent).toBe(
-      "Items Created"
+      "Items Created",
     );
     expect(
-      TestUtils.select("DashboardExecutions__NoDataMessage")?.textContent
+      TestUtils.select("DashboardExecutions__NoDataMessage")?.textContent,
     ).toBe("No recent activity in this project");
   });
 
   it("groups data correctly", () => {
     render(<DashboardExecutions {...defaultProps} />);
     expect(
-      TestUtils.select("DashboardExecutions__BarChartWrapper")
+      TestUtils.select("DashboardExecutions__BarChartWrapper"),
     ).toBeTruthy();
     expect(TestUtils.selectAll("DashboardBarChart__Bar-")).toHaveLength(2);
     expect(
       TestUtils.selectAll(
         "DashboardBarChart__StackedBar-",
-        TestUtils.selectAll("DashboardBarChart__Bar-")[0]
-      )
+        TestUtils.selectAll("DashboardBarChart__Bar-")[0],
+      ),
     ).toHaveLength(1);
     expect(
       TestUtils.selectAll(
         "DashboardBarChart__StackedBar-",
-        TestUtils.selectAll("DashboardBarChart__Bar-")[1]
-      )
+        TestUtils.selectAll("DashboardBarChart__Bar-")[1],
+      ),
     ).toHaveLength(2);
     expect(TestUtils.select("DropdownLink__Label")?.textContent).toBe(
-      "Last 30 days"
+      "Last 30 days",
     );
     expect(
-      TestUtils.selectAll("DashboardBarChart__BarLabel")[0].textContent
+      TestUtils.selectAll("DashboardBarChart__BarLabel")[0].textContent,
     ).toBe(TWENTIETH.minus({ days: 5 }).toFormat("dd LLL"));
     expect(
-      TestUtils.selectAll("DashboardBarChart__BarLabel")[1].textContent
+      TestUtils.selectAll("DashboardBarChart__BarLabel")[1].textContent,
     ).toBe(TWENTIETH.toFormat("dd LLL"));
   });
 
@@ -131,30 +126,30 @@ describe("DashboardExecutions", () => {
 
     userEvent.click(TestUtils.select("DropdownLink__LinkButton")!);
     expect(TestUtils.selectAll("DropdownLink__ListItem-")[1].textContent).toBe(
-      "Last 12 months"
+      "Last 12 months",
     );
     userEvent.click(TestUtils.selectAll("DropdownLink__ListItem-")[1]!);
     expect(TestUtils.select("DropdownLink__Label")?.textContent).toBe(
-      "Last 12 months"
+      "Last 12 months",
     );
     expect(TestUtils.selectAll("DashboardBarChart__Bar-")).toHaveLength(2);
     expect(
       TestUtils.selectAll(
         "DashboardBarChart__StackedBar-",
-        TestUtils.selectAll("DashboardBarChart__Bar-")[0]
-      )
+        TestUtils.selectAll("DashboardBarChart__Bar-")[0],
+      ),
     ).toHaveLength(1);
     expect(
       TestUtils.selectAll(
         "DashboardBarChart__StackedBar-",
-        TestUtils.selectAll("DashboardBarChart__Bar-")[1]
-      )
+        TestUtils.selectAll("DashboardBarChart__Bar-")[1],
+      ),
     ).toHaveLength(2);
     expect(
-      TestUtils.selectAll("DashboardBarChart__BarLabel")[0].textContent
+      TestUtils.selectAll("DashboardBarChart__BarLabel")[0].textContent,
     ).toBe(TWENTIETH.minus({ months: 2 }).toFormat("LLL"));
     expect(
-      TestUtils.selectAll("DashboardBarChart__BarLabel")[1].textContent
+      TestUtils.selectAll("DashboardBarChart__BarLabel")[1].textContent,
     ).toBe(TWENTIETH.toFormat("LLL"));
   });
 
@@ -171,16 +166,16 @@ describe("DashboardExecutions", () => {
 
     expect(TestUtils.select("DashboardExecutions__Tooltip")).toBeTruthy();
     expect(
-      TestUtils.select("DashboardExecutions__TooltipHeader")?.textContent
+      TestUtils.select("DashboardExecutions__TooltipHeader")?.textContent,
     ).toBe(TWENTIETH.minus({ days: 5 }).toFormat("dd LLLL"));
     expect(
-      TestUtils.selectAll("DashboardExecutions__TooltipRow-")[0].textContent
+      TestUtils.selectAll("DashboardExecutions__TooltipRow-")[0].textContent,
     ).toBe("Created1");
     expect(
-      TestUtils.selectAll("DashboardExecutions__TooltipRow-")[1].textContent
+      TestUtils.selectAll("DashboardExecutions__TooltipRow-")[1].textContent,
     ).toBe("Replicas1");
     expect(
-      TestUtils.selectAll("DashboardExecutions__TooltipRow-")[2].textContent
+      TestUtils.selectAll("DashboardExecutions__TooltipRow-")[2].textContent,
     ).toBe("Migrations0");
 
     userEvent.unhover(TestUtils.select("DashboardBarChart__StackedBar-")!);
@@ -231,7 +226,7 @@ describe("DashboardExecutions", () => {
     rerender(<DashboardExecutions {...newProps2} />);
 
     expect(
-      TestUtils.select("DashboardExecutions__LoadingWrapper")
+      TestUtils.select("DashboardExecutions__LoadingWrapper"),
     ).toBeTruthy();
   });
 
@@ -247,6 +242,6 @@ describe("DashboardExecutions", () => {
       ],
     };
     render(<DashboardExecutions {...newProps} />);
-    expect(TestUtils.selectAll("DashboardBarChart__Bar-")).toHaveLength(1);
+    expect(TestUtils.selectAll("DashboardBarChart__Bar-")).toHaveLength(2);
   });
 });

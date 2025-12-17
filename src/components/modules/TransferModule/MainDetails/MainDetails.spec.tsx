@@ -12,7 +12,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-import React from "react";
+import React, { act } from "react";
 
 import { render } from "@testing-library/react";
 import {
@@ -22,7 +22,7 @@ import {
 import { INSTANCE_MOCK } from "@tests/mocks/InstancesMock";
 import { MINION_POOL_MOCK } from "@tests/mocks/MinionPoolMock";
 import { STORAGE_BACKEND_MOCK } from "@tests/mocks/StoragesMock";
-import { REPLICA_MOCK } from "@tests/mocks/TransferMock";
+import { TRANSFER_MOCK } from "@tests/mocks/TransferMock";
 import TestUtils from "@tests/TestUtils";
 
 import MainDetails from "./";
@@ -31,14 +31,14 @@ jest.mock("@src/components/modules/EndpointModule/EndpointLogos", () => ({
   __esModule: true,
   default: (props: any) => <div>{props.endpoint}</div>,
 }));
-jest.mock("react-router-dom", () => ({ Link: "a" }));
+jest.mock("react-router", () => ({ Link: "a" }));
 
 describe("MainDetails", () => {
   let defaultProps: MainDetails["props"];
 
   beforeEach(() => {
     defaultProps = {
-      item: REPLICA_MOCK,
+      item: TRANSFER_MOCK,
       minionPools: [MINION_POOL_MOCK],
       storageBackends: [STORAGE_BACKEND_MOCK],
       destinationSchema: [],
@@ -55,7 +55,7 @@ describe("MainDetails", () => {
 
   it("renders without crashing", () => {
     const { getByText } = render(<MainDetails {...defaultProps} />);
-    expect(getByText(REPLICA_MOCK.id)).toBeTruthy();
+    expect(getByText(TRANSFER_MOCK.id)).toBeTruthy();
     expect(getByText("Bottom controls")).toBeTruthy();
   });
 
@@ -63,8 +63,8 @@ describe("MainDetails", () => {
     const { getByText } = render(
       <MainDetails
         {...defaultProps}
-        item={{ ...REPLICA_MOCK, destination_endpoint_id: "missing" }}
-      />
+        item={{ ...TRANSFER_MOCK, destination_endpoint_id: "missing" }}
+      />,
     );
     expect(getByText("Endpoint is missing")).toBeTruthy();
   });
@@ -79,27 +79,29 @@ describe("MainDetails", () => {
       <MainDetails
         {...defaultProps}
         item={{
-          ...REPLICA_MOCK,
+          ...TRANSFER_MOCK,
           last_execution_status: "ERROR_ALLOCATING_MINIONS",
         }}
-      />
+      />,
     );
     expect(
       Array.from(document.querySelectorAll("*")).find(el =>
-        el.textContent?.includes("error allocating minion machines")
-      )
+        el.textContent?.includes("error allocating minion machines"),
+      ),
     ).toBeTruthy();
   });
 
-  it("shows password", () => {
+  it("shows password", async () => {
     const { getByText } = render(<MainDetails {...defaultProps} />);
     const passwordEl = TestUtils.select("PasswordValue__Wrapper")!;
     expect(passwordEl).toBeTruthy();
     expect(passwordEl.textContent).toBe("•••••••••");
 
-    passwordEl.click();
+    await act(async () => {
+      passwordEl.click();
+    });
     expect(
-      getByText(REPLICA_MOCK.destination_environment.password)
+      getByText(TRANSFER_MOCK.destination_environment.password),
     ).toBeTruthy();
   });
 });

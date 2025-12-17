@@ -19,7 +19,7 @@ import type { OptionValues, StorageMap } from "@src/@types/Endpoint";
 import type { SchemaProperties, SchemaDefinitions } from "@src/@types/Schema";
 import type { NetworkMap } from "@src/@types/Network";
 import type { InstanceScript } from "@src/@types/Instance";
-import { executionOptions, migrationFields } from "@src/constants";
+import { executionOptions } from "@src/constants";
 import { UserScriptData } from "@src/@types/MainItem";
 import { defaultSchemaToFields } from "./ConnectionSchemaPlugin";
 
@@ -80,7 +80,7 @@ export const defaultFillMigrationImageMapValues = (opts: {
   field.properties = migrationImageOsTypes.map(os => {
     const values = (option.values as any)
       .filter(
-        (v: { os_type: string }) => v.os_type === os || v.os_type === "unknown"
+        (v: { os_type: string }) => v.os_type === os || v.os_type === "unknown",
       )
       .sort((v1: { os_type: string }, v2: { os_type: string }) => {
         if (v1.os_type === "unknown" && v2.os_type !== "unknown") {
@@ -92,7 +92,7 @@ export const defaultFillMigrationImageMapValues = (opts: {
         return 0;
       });
     const unknownIndex = values.findIndex(
-      (v: { os_type: string }) => v.os_type === "unknown"
+      (v: { os_type: string }) => v.os_type === "unknown",
     );
     if (
       unknownIndex > -1 &&
@@ -124,18 +124,10 @@ export const defaultFillMigrationImageMapValues = (opts: {
 
 export const defaultGetDestinationEnv = (
   options?: { [prop: string]: any } | null,
-  oldOptions?: { [prop: string]: any } | null
+  oldOptions?: { [prop: string]: any } | null,
 ): any => {
   const env: any = {};
-  const specialOptions = [
-    "execute_now",
-    "execute_now_options",
-    "separate_vm",
-    "skip_os_morphing",
-    "title",
-    "minion_pool_id",
-  ]
-    .concat(migrationFields.map(f => f.name))
+  const specialOptions = ["separate_vm", "title", "minion_pool_id"]
     .concat(executionOptions.map(o => o.name))
     .concat(migrationImageOsTypes);
 
@@ -173,8 +165,10 @@ export const defaultGetDestinationEnv = (
 export const defaultGetMigrationImageMap = (
   options: { [prop: string]: any } | null | undefined,
   oldOptions: any,
-  migrationImageMapFieldName: string
+  migrationImageMapFieldName: string,
 ) => {
+  console.log("defaultGetMigrationImageMap called with old env: ");
+  console.log(oldOptions);
   const env: any = {};
   const usableOptions = options;
   if (!usableOptions) {
@@ -182,7 +176,7 @@ export const defaultGetMigrationImageMap = (
   }
 
   const hasMigrationMap = Object.keys(usableOptions).find(
-    k => k === migrationImageMapFieldName
+    k => k === migrationImageMapFieldName,
   );
   if (!hasMigrationMap) {
     return env;
@@ -246,7 +240,7 @@ export default class OptionsSchemaParserBase {
     const { field, options, requiresWindowsImage, customFieldName } = opts;
 
     const option = options.find(f =>
-      customFieldName ? f.name === customFieldName : f.name === field.name
+      customFieldName ? f.name === customFieldName : f.name === field.name,
     );
     if (!option) {
       return;
@@ -265,14 +259,14 @@ export default class OptionsSchemaParserBase {
 
   getDestinationEnv(
     options?: { [prop: string]: any } | null,
-    oldOptions?: any
+    oldOptions?: any,
   ) {
     const env = {
       ...defaultGetDestinationEnv(options, oldOptions),
       ...defaultGetMigrationImageMap(
         options,
         oldOptions,
-        this.migrationImageMapFieldName
+        this.migrationImageMapFieldName,
       ),
     };
     return env;
@@ -284,7 +278,7 @@ export default class OptionsSchemaParserBase {
       return payload;
     }
     const hasSecurityGroups = Boolean(
-      networkMappings.find(nm => nm.targetNetwork!.security_groups)
+      networkMappings.find(nm => nm.targetNetwork!.security_groups),
     );
     networkMappings.forEach(mapping => {
       let target;
@@ -293,7 +287,7 @@ export default class OptionsSchemaParserBase {
           id: mapping.targetNetwork!.id,
           security_groups: mapping.targetSecurityGroups
             ? mapping.targetSecurityGroups.map(s =>
-                typeof s === "string" ? s : s.id
+                typeof s === "string" ? s : s.id,
               )
             : [],
         };
@@ -312,7 +306,7 @@ export default class OptionsSchemaParserBase {
       | { value: string | null; busType?: string | null }
       | undefined,
     storageMap?: StorageMap[] | null,
-    configDefault?: string | null
+    configDefault?: string | null,
   ) {
     if (!defaultStorage?.value && !storageMap) {
       return null;
@@ -368,14 +362,14 @@ export default class OptionsSchemaParserBase {
   getUserScripts(
     uploadedUserScripts: InstanceScript[],
     removedUserScripts: InstanceScript[],
-    userScriptData: UserScriptData | null | undefined
+    userScriptData: UserScriptData | null | undefined,
   ) {
     const payload: any = userScriptData || {};
 
     const setPayload = (
       scripts: InstanceScript[],
       scriptProp: "global" | "instanceId",
-      payloadProp: "global" | "instances"
+      payloadProp: "global" | "instances",
     ) => {
       if (!scripts.length) {
         return;
@@ -385,7 +379,7 @@ export default class OptionsSchemaParserBase {
         const scriptValue = script[scriptProp];
         if (!scriptValue) {
           throw new Error(
-            `The uploaded script structure is missing the '${scriptProp}' property`
+            `The uploaded script structure is missing the '${scriptProp}' property`,
           );
         }
         payload[payloadProp][scriptValue] = script.scriptContent;
@@ -395,22 +389,22 @@ export default class OptionsSchemaParserBase {
     setPayload(
       removedUserScripts.filter(s => s.global),
       "global",
-      "global"
+      "global",
     );
     setPayload(
       removedUserScripts.filter(s => s.instanceId),
       "instanceId",
-      "instances"
+      "instances",
     );
     setPayload(
       uploadedUserScripts.filter(s => s.global),
       "global",
-      "global"
+      "global",
     );
     setPayload(
       uploadedUserScripts.filter(s => s.instanceId),
       "instanceId",
-      "instances"
+      "instances",
     );
 
     return payload;

@@ -15,6 +15,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import React from "react";
 import styled from "styled-components";
 import { observer } from "mobx-react";
+import { useNavigate } from "react-router";
 
 import EmptyTemplate from "@src/components/modules/TemplateModule/EmptyTemplate";
 import Logo from "@src/components/ui/Logo";
@@ -22,9 +23,11 @@ import LoginForm from "@src/components/modules/LoginModule/LoginForm";
 
 import userStore from "@src/stores/UserStore";
 import configStore from "@src/utils/Config";
+import disclaimerStore from "@src/stores/DisclaimerStore";
 
 import backgroundImage from "@src/components/ui/Images/star-bg.jpg";
 import cbsImage from "./images/cbsl-logo.svg";
+import { ThemeProps } from "@src/components/Theme";
 
 const Wrapper = styled.div<any>`
   background-image: url("${backgroundImage}");
@@ -80,8 +83,25 @@ const CbsLogo = styled.a`
   cursor: pointer;
 `;
 
+const Disclaimer = styled.div<any>`
+  background: rgba(27, 39, 51, 0.7);
+  border-radius: ${ThemeProps.borderRadius};
+  position: relative;
+  padding: 8px;
+  margin-top: 16px;
+  overflow-wrap: break-word;
+  overflow-y: auto;
+  overflow-x: hidden;
+  white-space: pre-wrap;
+  color: white;
+  width: fit-content;
+  height: fit-content;
+  max-width: 50%;
+  max-height: 25%;
+`;
+
 type Props = {
-  history: any;
+  onNavigate: (path: string) => void;
 };
 
 type State = {
@@ -102,6 +122,15 @@ class LoginPage extends React.Component<Props, State> {
 
   componentDidMount() {
     document.title = "Log In";
+
+    disclaimerStore.loadDisclaimer();
+  }
+
+  renderDisclaimer() {
+    if (!disclaimerStore.disclaimer) {
+      return null;
+    }
+    return <Disclaimer>{disclaimerStore.disclaimer}</Disclaimer>;
   }
 
   async handleFormSubmit(data: { username: string; password: string }) {
@@ -116,9 +145,9 @@ class LoginPage extends React.Component<Props, State> {
     const prevExp = /\?prev=(.*)/;
     const prevMatch = prevExp.exec(window.location.search);
     if (prevMatch) {
-      this.props.history.push(prevMatch[1]);
+      this.props.onNavigate(prevMatch[1]);
     } else {
-      this.props.history.push("/");
+      this.props.onNavigate("/");
     }
   }
 
@@ -139,6 +168,7 @@ class LoginPage extends React.Component<Props, State> {
                 loginFailedResponse={userStore.loginFailedResponse}
                 showUserDomainInput={configStore.config.showUserDomainInput}
               />
+              {this.renderDisclaimer()}
             </Top>
             <Footer>
               <FooterText>Coriolis® is a service created by</FooterText>
@@ -151,4 +181,10 @@ class LoginPage extends React.Component<Props, State> {
   }
 }
 
-export default LoginPage;
+function LoginPageWithNavigate() {
+  const navigate = useNavigate();
+
+  return <LoginPage onNavigate={navigate} />;
+}
+
+export default LoginPageWithNavigate;

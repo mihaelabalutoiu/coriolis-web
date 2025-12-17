@@ -15,6 +15,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 export type ProviderTypes =
   | "azure"
   | "openstack"
+  | "vhi"
   | "opc"
   | "opca"
   | "o3c"
@@ -27,6 +28,7 @@ export type ProviderTypes =
   | "scvmm"
   | "olvm"
   | "kubevirt"
+  | "harvester"
   | "metal"
   | "rhev"
   | "lxd";

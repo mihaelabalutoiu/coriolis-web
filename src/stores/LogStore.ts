@@ -32,7 +32,7 @@ const MAX_STREAM_LINES = 200;
 const generateUrlForLog = (
   logName: string,
   startDate?: Date | null,
-  endDate?: Date | null
+  endDate?: Date | null,
 ): string => {
   const token = cookie.get("token") || "null";
   let url = `${configLoader.config.servicesUrls.coriolisLogs}/${logName}?auth_type=keystone&auth_token=${token}`;
@@ -47,15 +47,15 @@ const generateUrlForLog = (
 
 const downloadDiagnosticsIntoZip = async (zipRef: JSZip): Promise<void> => {
   const baseUrl = `${configLoader.config.servicesUrls.coriolis}/${apiCaller.projectId}`;
-  const [diagnosticsResp, replicasResp, migrationsResp] = await Promise.all([
+  const [diagnosticsResp, transfersResp, deploymentsResp] = await Promise.all([
     apiCaller.send({ url: `${baseUrl}/diagnostics` }),
-    apiCaller.send({ url: `${baseUrl}/replicas?show_deleted=true` }),
-    apiCaller.send({ url: `${baseUrl}/migrations?show_deleted=true` }),
+    apiCaller.send({ url: `${baseUrl}/transfers?show_deleted=true` }),
+    apiCaller.send({ url: `${baseUrl}/deployments?show_deleted=true` }),
   ]);
 
   zipRef.file("diagnostics.json", JSON.stringify(diagnosticsResp.data));
-  zipRef.file("replicas.json", JSON.stringify(replicasResp.data));
-  zipRef.file("migrations.json", JSON.stringify(migrationsResp.data));
+  zipRef.file("transfers.json", JSON.stringify(transfersResp.data));
+  zipRef.file("deployments.json", JSON.stringify(deploymentsResp.data));
 };
 
 class LogStore {
@@ -97,7 +97,7 @@ class LogStore {
         content: await apiCaller.send({
           url: generateUrlForLog(log.log_name, startDate, endDate),
         }),
-      }))
+      })),
     );
     const zip = new JSZip();
     logFilesResponses.forEach(response => {
@@ -117,10 +117,10 @@ class LogStore {
   @action download(
     logName: string,
     startDate?: Date | null,
-    endDate?: Date | null
+    endDate?: Date | null,
   ) {
     DomUtils.executeDownloadLink(
-      generateUrlForLog(logName, startDate, endDate)
+      generateUrlForLog(logName, startDate, endDate),
     );
   }
 
@@ -149,7 +149,7 @@ class LogStore {
     } else {
       wsUrl = configLoader.config.servicesUrls.coriolisLogStreamBaseUrl.replace(
         "https",
-        "wss"
+        "wss",
       );
     }
 
@@ -182,7 +182,7 @@ class LogStore {
     if (this.liveFeed.length > MAX_STREAM_LINES) {
       this.liveFeed = [
         ...this.liveFeed.filter(
-          (_, i) => i > this.liveFeed.length - MAX_STREAM_LINES
+          (_, i) => i > this.liveFeed.length - MAX_STREAM_LINES,
         ),
       ];
     }

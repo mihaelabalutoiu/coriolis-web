@@ -16,7 +16,7 @@ import autobind from "autobind-decorator";
 import { toJS } from "mobx";
 import { observer } from "mobx-react";
 import * as React from "react";
-import { CSSTransitionGroup } from "react-transition-group";
+import { CSSTransition } from "react-transition-group";
 import styled from "styled-components";
 
 import { MinionPool } from "@src/@types/MinionPool";
@@ -24,7 +24,6 @@ import { ThemePalette, ThemeProps } from "@src/components/Theme";
 import FieldInput from "@src/components/ui/FieldInput";
 import StatusImage from "@src/components/ui/StatusComponents/StatusImage";
 import ToggleButtonBar from "@src/components/ui/ToggleButtonBar";
-import { executionOptions, migrationFields } from "@src/constants";
 import { MinionPoolStoreUtils } from "@src/stores/MinionPoolStore";
 import configLoader from "@src/utils/Config";
 import LabelDictionary from "@src/utils/LabelDictionary";
@@ -152,7 +151,7 @@ export const findInvalidFields = (data: any, schema: Field[]): Field[] => {
       required = required.concat(
         f.properties
           ?.filter(p => p.required)
-          .map(p => ({ ...p, groupName: f.name }))
+          .map(p => ({ ...p, groupName: f.name })),
       );
     }
 
@@ -160,18 +159,18 @@ export const findInvalidFields = (data: any, schema: Field[]): Field[] => {
       if (f.enum) {
         const value = data && data[f.name];
         const subField = f.subFields.find(
-          sf => sf.name === `${String(value)}_options`
+          sf => sf.name === `${String(value)}_options`,
         );
         if (subField?.properties) {
           required = required.concat(
-            subField.properties.filter(p => p.required)
+            subField.properties.filter(p => p.required),
           );
         }
       } else if (f.type === "boolean") {
         const subField = data?.[f.name] ? f.subFields[1] : f.subFields[0];
         if (subField.properties) {
           required = required.concat(
-            subField.properties.filter(p => p.required)
+            subField.properties.filter(p => p.required),
           );
         }
       }
@@ -197,7 +196,7 @@ type Props = {
   getFieldValue?: (
     fieldName: string,
     defaultValue: any,
-    parentFieldName: string | undefined
+    parentFieldName: string | undefined,
   ) => any;
   onChange: (field: Field, value: any, parentFieldName?: string) => void;
   useAdvancedOptions?: boolean;
@@ -235,7 +234,7 @@ class WizardOptions extends React.Component<Props> {
   getFieldValue(
     fieldName: string,
     defaultValue: any,
-    parentFieldName?: string
+    parentFieldName?: string,
   ) {
     if (this.props.getFieldValue) {
       return this.props.getFieldValue(fieldName, defaultValue, parentFieldName);
@@ -263,7 +262,7 @@ class WizardOptions extends React.Component<Props> {
   }
 
   getDefaultSimpleFieldsSchema() {
-    let fieldsSchema: Field[] = [];
+    const fieldsSchema: Field[] = [];
 
     if (this.props.minionPools.length) {
       fieldsSchema.push({
@@ -297,10 +296,7 @@ class WizardOptions extends React.Component<Props> {
       });
     }
 
-    if (
-      this.props.wizardType === "migration" ||
-      this.props.wizardType === "migration-destination-options-edit"
-    ) {
+    if (this.props.wizardType === "migration-destination-options-edit") {
       fieldsSchema.push({
         name: "skip_os_morphing",
         type: "boolean",
@@ -331,44 +327,6 @@ class WizardOptions extends React.Component<Props> {
       fieldsSchema.push(titleFieldSchema);
     }
 
-    if (this.props.wizardType === "replica") {
-      fieldsSchema.push({
-        name: "execute_now",
-        type: "boolean",
-        default: true,
-        nullableBoolean: false,
-      });
-      const executeNowValue = this.getFieldValue("execute_now", true);
-      fieldsSchema.push({
-        name: "execute_now_options",
-        type: "object",
-        properties: executionOptions,
-        disabled: !executeNowValue || this.props.executeNowOptionsDisabled,
-        description: this.props.executeNowOptionsDisabled
-          ? "The 'Execute Now Options' are disabled for the source provider"
-          : !executeNowValue
-          ? "Enable 'Execute Now' to set 'Execute Now Options'"
-          : `Set the options for ${this.props.wizardType} execution`,
-      });
-    } else if (
-      this.props.wizardType === "migration" ||
-      this.props.wizardType === "migration-destination-options-edit"
-    ) {
-      const shutdownInstanceField = migrationFields.find(
-        f => f.name === "shutdown_instances"
-      )!;
-      shutdownInstanceField.disabled = this.props.executeNowOptionsDisabled;
-      shutdownInstanceField.description = this.props.executeNowOptionsDisabled
-        ? "The 'Shutdown Instances' option is disabled for the source provider"
-        : shutdownInstanceField.description;
-      fieldsSchema = [
-        ...fieldsSchema,
-        ...migrationFields.map(f =>
-          f.name === "shutdown_instances" ? shutdownInstanceField : f
-        ),
-      ];
-    }
-
     return fieldsSchema;
   }
 
@@ -389,7 +347,7 @@ class WizardOptions extends React.Component<Props> {
             name: minionPool.name,
             id: minionPool.id,
           })),
-        })
+        }),
       );
 
       fieldsSchema.push({
@@ -415,11 +373,10 @@ class WizardOptions extends React.Component<Props> {
   }
 
   // Called only by parent components
-  // eslint-disable-next-line
   highlightFields(): boolean {
     const highlightedFields: Field[] = findInvalidFields(
       this.props.data,
-      this.props.fields
+      this.props.fields,
     );
 
     this.setState({ highlightedFields });
@@ -431,7 +388,7 @@ class WizardOptions extends React.Component<Props> {
     let groups: Array<{ fields: FieldRender[]; name?: string }> = [{ fields }];
 
     const workerFields = fields.filter(
-      f => f.field.name.indexOf("migr_") === 0
+      f => f.field.name.indexOf("migr_") === 0,
     );
     if (workerFields.length > 1) {
       groups = [
@@ -519,14 +476,13 @@ class WizardOptions extends React.Component<Props> {
         disabled={field.disabled}
         highlight={Boolean(
           this.state.highlightedFields.find(
-            f => f.name === field.name || f.groupName === field.name
-          )
+            f => f.name === field.name || f.groupName === field.name,
+          ),
         )}
         disabledLoading={
           this.props.optionsLoading &&
           !optionsLoadingReqFields.find(fn => fn === field.name)
         }
-        // eslint-disable-next-line react/jsx-props-no-spreading
         {...additionalProps}
       />
     );
@@ -559,7 +515,7 @@ class WizardOptions extends React.Component<Props> {
     if (this.props.useAdvancedOptions) {
       fieldsSchema = fieldsSchema.concat(this.getDefaultAdvancedFieldsSchema());
       fieldsSchema = fieldsSchema.concat(
-        this.props.fields.filter(f => !isRequired(f))
+        this.props.fields.filter(f => !isRequired(f)),
       );
     }
 
@@ -582,7 +538,7 @@ class WizardOptions extends React.Component<Props> {
         subField = value ? f.subFields[1] : f.subFields[0];
       } else {
         subField = f.subFields.find(
-          sf => sf.name === `${String(value)}_options`
+          sf => sf.name === `${String(value)}_options`,
         );
       }
       if (subField?.properties) {
@@ -591,17 +547,10 @@ class WizardOptions extends React.Component<Props> {
     });
     fieldsSchema = [...fieldsSchema, ...subFields];
 
-    let executeNowColumn: number;
     const fields: FieldRender[] = fieldsSchema
       .filter(f => shouldRenderField(f))
       .map((field, i) => {
-        let column: number = i % 2;
-        if (field.name === "execute_now") {
-          executeNowColumn = column;
-        }
-        if (field.name === "execute_now_options") {
-          column = executeNowColumn;
-        }
+        const column: number = i % 2;
         const usableField = toJS(field);
         if (
           field.type === "boolean" &&
@@ -624,37 +573,39 @@ class WizardOptions extends React.Component<Props> {
           const getColumnInGroup = (field: any, fieldIndex: number) =>
             g.name ? fieldIndex % 2 : field.column;
           return (
-            <CSSTransitionGroup
+            <CSSTransition
               key={g.name || 0}
-              transitionName={i > 0 ? "field-group-transition" : ""}
-              transitionAppear
-              transitionEnterTimeout={250}
-              transitionAppearTimeout={250}
-              transitionLeaveTimeout={250}
+              classNames={i > 0 ? "field-group-transition" : ""}
+              appear
+              timeout={{ exit: 250, enter: 250, appear: 250 }}
               in={false}
             >
-              <Group>
-                {g.name ? (
-                  <GroupName>
-                    <GroupNameBar />
-                    <GroupNameText>{LabelDictionary.get(g.name)}</GroupNameText>
-                    <GroupNameBar />
-                  </GroupName>
-                ) : null}
-                <GroupFields>
-                  <Column left>
-                    {g.fields.map(
-                      (f, j) => getColumnInGroup(f, j) === 0 && f.component
-                    )}
-                  </Column>
-                  <Column right>
-                    {g.fields.map(
-                      (f, j) => getColumnInGroup(f, j) === 1 && f.component
-                    )}
-                  </Column>
-                </GroupFields>
-              </Group>
-            </CSSTransitionGroup>
+              <div>
+                <Group>
+                  {g.name ? (
+                    <GroupName>
+                      <GroupNameBar />
+                      <GroupNameText>
+                        {LabelDictionary.get(g.name)}
+                      </GroupNameText>
+                      <GroupNameBar />
+                    </GroupName>
+                  ) : null}
+                  <GroupFields>
+                    <Column left>
+                      {g.fields.map(
+                        (f, j) => getColumnInGroup(f, j) === 0 && f.component,
+                      )}
+                    </Column>
+                    <Column right>
+                      {g.fields.map(
+                        (f, j) => getColumnInGroup(f, j) === 1 && f.component,
+                      )}
+                    </Column>
+                  </GroupFields>
+                </Group>
+              </div>
+            </CSSTransition>
           );
         })}
       </Fields>

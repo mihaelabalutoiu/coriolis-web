@@ -15,7 +15,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import * as React from "react";
 import { observer } from "mobx-react";
 import styled from "styled-components";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 
 import Button from "@src/components/ui/Button";
 import StatusImage from "@src/components/ui/StatusComponents/StatusImage";
@@ -26,7 +26,7 @@ import { ThemePalette, ThemeProps } from "@src/components/Theme";
 
 import type { Endpoint } from "@src/@types/Endpoint";
 
-import { ReplicaItem, MigrationItem, TransferItem } from "@src/@types/MainItem";
+import { TransferItem } from "@src/@types/MainItem";
 import endpointImage from "./images/endpoint.svg";
 
 const Wrapper = styled.div<any>`
@@ -135,11 +135,7 @@ type GroupedEndpoint = {
   value: number;
 };
 type Props = {
-  // eslint-disable-next-line react/no-unused-prop-types
-  replicas: ReplicaItem[];
-  // eslint-disable-next-line react/no-unused-prop-types
-  migrations: MigrationItem[];
-  // eslint-disable-next-line react/no-unused-prop-types
+  transfers: TransferItem[];
   endpoints: Endpoint[];
   style: React.CSSProperties;
   loading: boolean;
@@ -178,20 +174,29 @@ class DashboardTopEndpoints extends React.Component<Props, State> {
 
   calculateGroupedEndpoints(props: Props) {
     const groupedEndpoints: GroupedEndpoint[] = [];
-    const count = (mainItems: TransferItem[], endpointId: string) =>
+    const count = (
+      mainItems: TransferItem[],
+      endpointId: string,
+      scenario: string,
+    ) =>
       mainItems.filter(
         r =>
-          r.destination_endpoint_id === endpointId ||
-          r.origin_endpoint_id === endpointId
+          r.scenario === scenario &&
+          (r.destination_endpoint_id === endpointId ||
+            r.origin_endpoint_id === endpointId),
       ).length;
 
     props.endpoints.forEach(endpoint => {
-      const replicasCount = count(props.replicas, endpoint.id);
-      const migrationsCount = count(props.migrations, endpoint.id);
+      const replicasCount = count(props.transfers, endpoint.id, "replica");
+      const migrationsCount = count(
+        props.transfers,
+        endpoint.id,
+        "live_migration",
+      );
       groupedEndpoints.push({
         endpoint,
-        replicasCount,
-        migrationsCount,
+        replicasCount: replicasCount,
+        migrationsCount: migrationsCount,
         value: replicasCount + migrationsCount,
       });
     });
@@ -328,8 +333,8 @@ class DashboardTopEndpoints extends React.Component<Props, State> {
           {this.props.loading && this.props.endpoints.length === 0
             ? this.renderLoading()
             : this.props.endpoints.length
-            ? this.renderChart()
-            : this.renderNoData()}
+              ? this.renderChart()
+              : this.renderNoData()}
         </Module>
       </Wrapper>
     );

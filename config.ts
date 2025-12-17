@@ -31,13 +31,16 @@ const conf: Config = {
   // The timeout between polling requests
   requestPollTimeout: 5000,
 
+  // The timeout for an inactive user session (in ms). Set 0 to disable.
+  inactiveSessionTimeout: 0,
+
   // - Specifies the `limit` for each provider when listing all its VMs for pagination.
   // - If the provider is not in this list, the 'default' value will be used.
   // - If the `default` value is lower than the number of instances that
   // fit into a page, the latter number will be used.
   // - `Infinity` value means no `limit` will be used, i.e. all VMs will be listed.
   instancesListBackgroundLoading: {
-    default: 10,
+    default: 100,
     ovm: Infinity,
     "hyper-v": Infinity,
   },
@@ -71,6 +74,22 @@ const conf: Config = {
       name: "openstack",
       types: ["destination"],
       requiredFields: ["list_all_destination_networks"],
+    },
+    {
+      name: "vhi",
+      types: ["destination"],
+      requiredFields: ["list_all_destination_networks"],
+    },
+    {
+      name: "vhi",
+      types: ["source"],
+      requiredFields: ["replica_export_mechanism"],
+      requiredValues: [
+        {
+          field: "replica_export_mechanism",
+          values: ["swift_backups", "ceph_backups", "coriolis_backups"],
+        },
+      ],
     },
     {
       name: "aws",
@@ -112,6 +131,16 @@ const conf: Config = {
       requiredFields: ["import_node"],
       relistFields: ["linux_template", "windows_template"],
     },
+    {
+      name: "olvm",
+      types: ["destination"],
+      requiredFields: ["cluster"]
+    },
+    {
+      name: "rhev",
+      types: ["destination"],
+      requiredFields: ["cluster"]
+    }
   ],
 
   /*
@@ -123,10 +152,12 @@ const conf: Config = {
   providerSortPriority: {
     aws: 1,
     openstack: 1,
+    vhi: 2,
     vmware_vsphere: 1,
     azure: 2,
     "hyper-v": 2,
     kubevirt: 2,
+    harvester: 2,
     scvmm: 2,
     oci: 3,
     opc: 3,
@@ -143,10 +174,12 @@ const conf: Config = {
   providerNames: {
     aws: "AWS",
     openstack: "OpenStack",
+    vhi: "VHI",
     vmware_vsphere: "VMware",
     azure: "Azure",
     "hyper-v": "Hyper-V",
     kubevirt: "KubeVirt",
+    harvester: "SUSE Virtualization",
     scvmm: "SCVMM",
     oci: "OCI",
     opca: "Oracle Private Cloud Appliance",
@@ -166,6 +199,9 @@ const conf: Config = {
   // The list of the users to hide in the UI
   hiddenUsers: ["barbican", "coriolis"],
 
+  // The list of user roles to hide in the UI
+  hiddenUserRoles: ["audit", "creator", "observer", "service", "key-manager:service-admin"],
+
   // By default, if a field name contains `password` in it (ex.: `user_password`),
   // it will be rendered as a password input
   // If the field doesn't contain `password` in its name, the following list will be used instead
@@ -175,9 +211,9 @@ const conf: Config = {
     "client_secret",
   ],
 
-  // The number of items per page applicable to main lists:
-  // replicas, migrations, endpoints, users etc.
-  mainListItemsPerPage: 20,
+  // The number of items per page applicable to default lists:
+  // transfers, deployments, endpoints, users etc.
+  defaultListItemsPerPage: 25,
 
   maxMinionPoolEventsPerPage: 50,
 

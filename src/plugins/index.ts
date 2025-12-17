@@ -16,14 +16,17 @@ import { ProviderTypes } from "@src/@types/Providers";
 import DefaultConnectionSchemaPlugin from "./default/ConnectionSchemaPlugin";
 import AzureConnectionSchemaPlugin from "./azure/ConnectionSchemaPlugin";
 import OpenstackConnectionSchemaPlugin from "./openstack/ConnectionSchemaPlugin";
+import VHIConnectionSchemaPlugin from "./vhi/ConnectionSchemaPlugin";
 import OciConnectionSchemaPlugin from "./oci/ConnectionSchemaPlugin";
 import OpcaConnectionSchemaPlugin from "./opca/ConnectionSchemaPlugin";
 import O3cConnectionSchemaPlugin from "./o3c/ConnectionSchemaPlugin";
 import KubevirtConnectionSchemaPlugin from "./kubevirt/ConnectionSchemaPlugin";
+import HarvesterConnectionSchemaPlugin from "./harvester/ConnectionSchemaPlugin";
 
 import DefaultContentPlugin from "./default/ContentPlugin";
 import AzureContentPlugin from "./azure/ContentPlugin";
 import OpenstackContentPlugin from "./openstack/ContentPlugin";
+import VHIContentPlugin from "./vhi/ContentPlugin";
 import MetalContentPlugin from "./metal/ContentPlugin";
 
 import DefaultOptionsSchemaPlugin from "./default/OptionsSchemaPlugin";
@@ -31,6 +34,7 @@ import AwsOptionsSchemaPlugin from "./aws/OptionsSchemaPlugin";
 import OvmOptionsSchemaPlugin from "./ovm/OptionsSchemaPlugin";
 import VmwareOptionsSchemaPlugin from "./vmware_vsphere/OptionsSchemaPlugin";
 import OpenstackOptionsSchemaPlugin from "./openstack/OptionsSchemaPlugin";
+import VHIOptionsSchemaPlugin from "./vhi/OptionsSchemaPlugin";
 import OlvmOptionsSchemaPlugin from "./olvm/OptionsSchemaPlugin";
 import RhevOptionsSchemaPlugin from "./rhev/OptionsSchemaPlugin";
 import AzureOptionsSchemaPlugin from "./azure/OptionsSchemaPlugin";
@@ -40,6 +44,7 @@ import OciInstanceInfoPlugin from "./oci/InstanceInfoPlugin";
 
 import DefaultMinionPoolSchemaPlugin from "./default/MinionPoolSchemaPlugin";
 import OpenstackMinionPoolSchemaPlugin from "./openstack/MinionPoolSchemaPlugin";
+import VHIMinionPoolSchemaPlugin from "./vhi/MinionPoolSchemaPlugin";
 
 const hasKey = <O extends object>(obj: O, key: keyof any): key is keyof O =>
   key in obj;
@@ -50,10 +55,12 @@ export const ConnectionSchemaPlugin = {
       default: new DefaultConnectionSchemaPlugin(),
       azure: new AzureConnectionSchemaPlugin(),
       openstack: new OpenstackConnectionSchemaPlugin(),
+      vhi: new VHIConnectionSchemaPlugin(),
       oci: new OciConnectionSchemaPlugin(),
       opca: new OpcaConnectionSchemaPlugin(),
       o3c: new O3cConnectionSchemaPlugin(),
       kubevirt: new KubevirtConnectionSchemaPlugin(),
+      harvester: new HarvesterConnectionSchemaPlugin(),
     };
     if (hasKey(map, provider)) {
       return map[provider];
@@ -69,6 +76,7 @@ export const OptionsSchemaPlugin = {
       aws: new AwsOptionsSchemaPlugin(),
       oracle_vm: new OvmOptionsSchemaPlugin(),
       openstack: new OpenstackOptionsSchemaPlugin(),
+      vhi: new VHIOptionsSchemaPlugin(),
       vmware_vsphere: new VmwareOptionsSchemaPlugin(),
       olvm: new OlvmOptionsSchemaPlugin(),
       rhev: new RhevOptionsSchemaPlugin(),
@@ -87,6 +95,7 @@ export const ContentPlugin = {
       default: DefaultContentPlugin,
       azure: AzureContentPlugin,
       openstack: OpenstackContentPlugin,
+      vhi: VHIContentPlugin,
       metal: MetalContentPlugin,
     };
     if (hasKey(map, provider)) {
@@ -114,6 +123,7 @@ export const MinionPoolSchemaPlugin = {
     const map = {
       default: new DefaultMinionPoolSchemaPlugin(),
       openstack: new OpenstackMinionPoolSchemaPlugin(),
+      vhi: new VHIMinionPoolSchemaPlugin(),
     };
     if (hasKey(map, provider)) {
       return map[provider];

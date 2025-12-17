@@ -24,7 +24,7 @@ import { INSTANCE_OSMORPHING_MINION_POOL_MAPPINGS } from "@src/components/module
 import { getDisks } from "@src/components/modules/WizardModule/WizardStorage";
 import { ThemePalette, ThemeProps } from "@src/components/Theme";
 import StatusPill from "@src/components/ui/StatusComponents/StatusPill";
-import { migrationFields } from "@src/constants";
+import { deploymentFields } from "@src/constants";
 import configLoader from "@src/utils/Config";
 import DateUtils from "@src/utils/DateUtils";
 import LabelDictionary from "@src/utils/LabelDictionary";
@@ -175,16 +175,17 @@ type Props = {
   sourceSchema: Field[];
   destinationSchema: Field[];
   uploadedUserScripts: InstanceScript[];
+  executionOptions: Field[];
 };
 @observer
 class WizardSummary extends React.Component<Props> {
   getDefaultBooleanOption(fieldName: string, defaultValue: boolean): boolean {
-    if (!this.props.data.destOptions) {
+    if (!this.props.data.executeOptions) {
       return defaultValue;
     }
 
-    if (this.props.data.destOptions[fieldName] != null) {
-      return this.props.data.destOptions[fieldName];
+    if (this.props.data.executeOptions[fieldName] != null) {
+      return this.props.data.executeOptions[fieldName];
     }
 
     return defaultValue;
@@ -227,14 +228,14 @@ class WizardSummary extends React.Component<Props> {
         timeLabel = "every hour, every minute";
       } else {
         timeLabel = `at ${padNumber(
-          scheduleInfo.hour
+          scheduleInfo.hour,
         )} o'clock, every minute UTC`;
       }
     } else if (scheduleInfo.hour == null) {
       timeLabel = `every hour, at minute ${padNumber(scheduleInfo.minute)} UTC`;
     } else {
       timeLabel = `at ${padNumber(scheduleInfo.hour)}:${padNumber(
-        scheduleInfo.minute
+        scheduleInfo.minute,
       )} UTC`;
     }
 
@@ -295,8 +296,8 @@ class WizardSummary extends React.Component<Props> {
                   .map(n =>
                     LabelDictionary.get(
                       n,
-                      `${data.source ? data.source.type : ""}-source`
-                    )
+                      `${data.source ? data.source.type : ""}-source`,
+                    ),
                   )
                   .join(" - ");
                 const optionValue = fieldHelper.getValueAlias({
@@ -316,8 +317,56 @@ class WizardSummary extends React.Component<Props> {
           {this.renderObjectTable(
             data.sourceOptions,
             this.props.sourceSchema,
-            provider
+            provider,
           )}
+        </OptionsList>
+      </Section>
+    );
+  }
+
+  hasDefaultValue(option: any): option is { defaultValue: boolean } {
+    return option && typeof option.defaultValue !== "undefined";
+  }
+
+  renderTransferExecuteOptions() {
+    const type =
+      this.props.wizardType.charAt(0).toUpperCase() +
+      this.props.wizardType.substr(1);
+    const data = this.props.data;
+
+    if (
+      !this.props.executionOptions ||
+      this.props.executionOptions.length === 0
+    ) {
+      return null;
+    }
+
+    const deploymentFieldNames = deploymentFields.map(f => f.name);
+    const filteredExecutionOptions = this.props.executionOptions.filter(
+      option => !deploymentFieldNames.includes(option.name),
+    );
+
+    const allOptions = [...filteredExecutionOptions, ...deploymentFields];
+
+    return (
+      <Section>
+        <SectionTitle>{type} Transfer Execution Options</SectionTitle>
+        <OptionsList>
+          {allOptions.map(option => (
+            <Option key={option.name}>
+              <OptionLabel>{option.label}</OptionLabel>
+              <OptionValue>
+                {data.executeOptions &&
+                data.executeOptions[option.name] !== undefined
+                  ? data.executeOptions[option.name]
+                    ? "Yes"
+                    : "No"
+                  : this.hasDefaultValue(option) && option.defaultValue
+                    ? "Yes"
+                    : "No"}
+              </OptionValue>
+            </Option>
+          ))}
         </OptionsList>
       </Section>
     );
@@ -326,7 +375,7 @@ class WizardSummary extends React.Component<Props> {
   renderObjectTable(
     options: any,
     schema: Field[],
-    provider?: ProviderTypes | null
+    provider?: ProviderTypes | null,
   ) {
     if (!options) {
       return null;
@@ -334,7 +383,7 @@ class WizardSummary extends React.Component<Props> {
     const objectKeys: string[] = Object.keys(options).filter(
       key =>
         typeof options[key] === "object" &&
-        key !== INSTANCE_OSMORPHING_MINION_POOL_MAPPINGS
+        key !== INSTANCE_OSMORPHING_MINION_POOL_MAPPINGS,
     );
 
     return objectKeys.map(key =>
@@ -374,7 +423,7 @@ class WizardSummary extends React.Component<Props> {
             );
           })}
         </ObjectTable>
-      ) : null
+      ) : null,
     );
   }
 
@@ -408,7 +457,7 @@ class WizardSummary extends React.Component<Props> {
         {Object.keys(mappings).map(instanceId => {
           const instanceName =
             this.props.instancesDetails.find(
-              i => i.instance_name === instanceId || i.id === instanceId
+              i => i.instance_name === instanceId || i.id === instanceId,
             )?.name || instanceId;
           return (
             <Option key={instanceId}>
@@ -448,25 +497,6 @@ class WizardSummary extends React.Component<Props> {
       </Option>
     );
 
-    const migrationOptions = [
-      <Option key="shutdown">
-        <OptionLabel>Shutdown Instances</OptionLabel>
-        <OptionValue>
-          {this.getDefaultBooleanOption("shutdown_instances", false)
-            ? "Yes"
-            : "No"}
-        </OptionValue>
-      </Option>,
-      <Option key="count">
-        <OptionLabel>Replication Count</OptionLabel>
-        <OptionValue>
-          {(this.props.data.destOptions &&
-            this.props.data.destOptions.replication_count) ||
-            2}
-        </OptionValue>
-      </Option>,
-    ];
-
     const renderDefaultStorageOption = () => (
       <Option>
         <OptionLabel>Default Storage</OptionLabel>
@@ -487,7 +517,7 @@ class WizardSummary extends React.Component<Props> {
         <SectionTitle>{type} Target Options</SectionTitle>
         <OptionsList>
           {this.props.wizardType === "replica" ? executeNowOption : null}
-          {this.props.wizardType === "migration" ? migrationOptions : null}
+          {this.props.wizardType === "migration" ? executeNowOption : null}
           {this.props.data.selectedInstances &&
           this.props.data.selectedInstances.length > 1
             ? separateVmOption
@@ -496,9 +526,7 @@ class WizardSummary extends React.Component<Props> {
           {data.destOptions
             ? Object.keys(data.destOptions).map(optionName => {
                 if (
-                  optionName === "execute_now" ||
                   optionName === "separate_vm" ||
-                  migrationFields.find(f => f.name === optionName) ||
                   !data.destOptions ||
                   data.destOptions[optionName] == null ||
                   data.destOptions[optionName] === "" ||
@@ -512,8 +540,8 @@ class WizardSummary extends React.Component<Props> {
                   .map(n =>
                     LabelDictionary.get(
                       n,
-                      `${data.target ? data.target.type : ""}-destination`
-                    )
+                      `${data.target ? data.target.type : ""}-destination`,
+                    ),
                   )
                   .join(" - ");
 
@@ -536,7 +564,7 @@ class WizardSummary extends React.Component<Props> {
           {this.renderObjectTable(
             data.destOptions,
             this.props.destinationSchema,
-            provider
+            provider,
           )}
         </OptionsList>
       </Section>
@@ -545,7 +573,7 @@ class WizardSummary extends React.Component<Props> {
 
   renderStorageSection(type: "backend" | "disk") {
     const storageMap = this.props.storageMap.filter(
-      mapping => mapping.type === type
+      mapping => mapping.type === type,
     );
     const disks = getDisks(this.props.instancesDetails, type);
 
@@ -562,7 +590,7 @@ class WizardSummary extends React.Component<Props> {
       .filter(d => d[fieldName])
       .map(disk => {
         const diskMapped = storageMap.find(
-          s => s.source[fieldName] === disk[fieldName]
+          s => s.source[fieldName] === disk[fieldName],
         );
         if (diskMapped) {
           return {
@@ -575,7 +603,7 @@ class WizardSummary extends React.Component<Props> {
       });
 
     fullStorageMap.sort((m1, m2) =>
-      String(m1.source[fieldName]).localeCompare(String(m2.source[fieldName]))
+      String(m1.source[fieldName]).localeCompare(String(m2.source[fieldName])),
     );
     fullStorageMap = fullStorageMap.filter(fsm => fsm.target && fsm.target.id);
     const title =
@@ -785,6 +813,7 @@ class WizardSummary extends React.Component<Props> {
           {this.renderStorageSection("backend")}
           {this.renderStorageSection("disk")}
           {this.renderScheduleSection()}
+          {this.renderTransferExecuteOptions()}
         </Column>
       </Wrapper>
     );

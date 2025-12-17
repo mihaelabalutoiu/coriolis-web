@@ -13,7 +13,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import { observer } from "mobx-react";
 import styled, { css } from "styled-components";
 import autobind from "autobind-decorator";
@@ -144,7 +144,7 @@ export const MainItemInfo = styled.div<any>`
     margin-right: 8px;
   }
 `;
-export const ItemReplicaBadge = styled.div<any>`
+export const ItemTransferBadge = styled.div<any>`
   background: "white";
   color: #7f8795;
   font-size: 9px;
@@ -274,13 +274,16 @@ class NotificationDropdown extends React.Component<Props, State> {
     const list = (
       <List>
         {this.props.items.map(item => {
+          const typeUrl =
+            item.type === "deployment" ? "deployments" : "transfers";
+
           const executionsPath =
             item.status === "RUNNING"
-              ? item.type === "replica"
+              ? item.type === "transfer"
                 ? "/executions"
-                : item.type === "migration"
-                ? "/tasks"
-                : ""
+                : item.type === "deployment"
+                  ? "/tasks"
+                  : ""
               : "";
 
           return (
@@ -295,14 +298,14 @@ class NotificationDropdown extends React.Component<Props, State> {
               onClick={() => {
                 this.handleItemClick();
               }}
-              to={`/${item.type}s/${item.id}${executionsPath}`}
+              to={`/${typeUrl}/${item.id}${executionsPath}`}
             >
               <InfoColumn>
                 <MainItemInfo>
                   <StatusIcon status={item.status} hollow />
-                  <ItemReplicaBadge type={item.type}>
-                    {item.type === "replica" ? "RE" : "MI"}
-                  </ItemReplicaBadge>
+                  <ItemTransferBadge type={item.type}>
+                    {item.type === "transfer" ? "TR" : "DE"}
+                  </ItemTransferBadge>
                   <ItemTitle>{item.name}</ItemTitle>
                 </MainItemInfo>
                 <ItemDescription>{item.description}</ItemDescription>
@@ -323,7 +326,7 @@ class NotificationDropdown extends React.Component<Props, State> {
 
   renderBell() {
     const isLoading = Boolean(
-      this.props.items.find(i => i.status === "RUNNING")
+      this.props.items.find(i => i.status === "RUNNING"),
     );
 
     return (
@@ -339,7 +342,7 @@ class NotificationDropdown extends React.Component<Props, State> {
         <BellIcon
           dangerouslySetInnerHTML={{
             __html: bellImage(
-              this.props.white ? "white" : ThemePalette.grayscale[2]
+              this.props.white ? "white" : ThemePalette.grayscale[2],
             ),
           }}
         />

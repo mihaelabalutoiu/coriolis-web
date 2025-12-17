@@ -19,11 +19,11 @@ describe("Page header", () => {
   const waitForAll = () => {
     cy.waitMockAuth();
 
-    cy.wait(["@endpoints", "@schedules"]);
+    cy.wait(["@endpoints", "@schedules"], { timeout: 20000 });
   };
 
   it("switches project", () => {
-    cy.visit("/replicas");
+    cy.visit("/transfers");
     waitForAll();
 
     cy.get("div[class^='Dropdown__Wrapper']").contains("admin").click();
@@ -38,13 +38,13 @@ describe("Page header", () => {
       cy.getCookie("projectId").should(
         "have.property",
         "value",
-        projects.find(p => p.name === "admin").id
+        projects.find(p => p.name === "admin").id,
       );
     });
   });
 
   it("redirects to user info", () => {
-    cy.visit("/replicas");
+    cy.visit("/transfers");
     waitForAll();
     cy.get("div[class^='UserDropdown__Wrapper']").click();
     cy.get("a[class^='UserDropdown__Username']").click();
@@ -52,7 +52,7 @@ describe("Page header", () => {
   });
 
   it("shows about coriolis", () => {
-    cy.visit("/replicas");
+    cy.visit("/transfers");
     waitForAll();
     cy.get("div[class^='UserDropdown__Wrapper']").click();
 
@@ -76,13 +76,13 @@ describe("Page header", () => {
       const appliances = results[0].appliances;
       cy.get("div[class^='LicenceModule__Wrapper']").should(
         "contain.text",
-        `${appliances[0].id}-licencev2`
+        `${appliances[0].id}-licencev2`,
       );
     });
   });
 
   it("redirects to help", () => {
-    cy.visit("/replicas", {
+    cy.visit("/transfers", {
       onBeforeLoad(win) {
         cy.stub(win, "open").as("winOpen");
       },
@@ -93,12 +93,12 @@ describe("Page header", () => {
     cy.get("div[class^='UserDropdown__ListItem']").contains("Help").click();
     cy.get("@winOpen").should(
       "be.calledWith",
-      "https://cloudbase.it/coriolis-overview/"
+      "https://cloudbase.it/coriolis-overview/",
     );
   });
 
   it("logs out", () => {
-    cy.visit("/replicas");
+    cy.visit("/transfers");
     waitForAll();
 
     cy.get("div[class^='UserDropdown__Wrapper']").click();

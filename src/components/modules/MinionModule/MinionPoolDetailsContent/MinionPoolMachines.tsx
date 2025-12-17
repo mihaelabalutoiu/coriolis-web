@@ -14,15 +14,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import * as React from "react";
 import { Collapse } from "react-collapse";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import styled, { createGlobalStyle, css } from "styled-components";
 
-import { MigrationItem, ReplicaItem, TransferItem } from "@src/@types/MainItem";
+import { DeploymentItem, TransferItem, ActionItem } from "@src/@types/MainItem";
 import { MinionMachine, MinionPool } from "@src/@types/MinionPool";
 import { ThemePalette, ThemeProps } from "@src/components/Theme";
 import Arrow from "@src/components/ui/Arrow";
 import DropdownLink from "@src/components/ui/Dropdowns/DropdownLink";
-import { ItemReplicaBadge } from "@src/components/ui/Dropdowns/NotificationDropdown";
+import { ItemTransferBadge } from "@src/components/ui/Dropdowns/NotificationDropdown";
 import StatusPill from "@src/components/ui/StatusComponents/StatusPill";
 import DateUtils from "@src/utils/DateUtils";
 
@@ -144,8 +144,8 @@ const ValueLink = styled(Link)`
 type FilterType = "all" | "allocated" | "not-allocated";
 type Props = {
   item?: MinionPool | null;
-  replicas: ReplicaItem[];
-  migrations: MigrationItem[];
+  transfers: TransferItem[];
+  deployments: DeploymentItem[];
 };
 type State = {
   filterStatus: FilterType;
@@ -169,13 +169,13 @@ class MinionPoolMachines extends React.Component<Props, State> {
         return this.machines.filter(
           m =>
             m.allocation_status === "ALLOCATED" ||
-            m.allocation_status === "AVAILABLE"
+            m.allocation_status === "AVAILABLE",
         );
       default:
         return this.machines.filter(
           m =>
             m.allocation_status !== "ALLOCATED" &&
-            m.allocation_status !== "AVAILABLE"
+            m.allocation_status !== "AVAILABLE",
         );
     }
   }
@@ -225,7 +225,7 @@ class MinionPoolMachines extends React.Component<Props, State> {
             this.machines.filter(
               m =>
                 m.allocation_status === "ALLOCATED" ||
-                m.allocation_status === "AVAILABLE"
+                m.allocation_status === "AVAILABLE",
             ).length
           }{" "}
           allocated
@@ -278,11 +278,11 @@ class MinionPoolMachines extends React.Component<Props, State> {
     return (
       <MachinesWrapper>
         {this.filteredMachines.map(machine => {
-          const findTransferItem = (transferItems: TransferItem[]) =>
+          const findTransferItem = (transferItems: ActionItem[]) =>
             transferItems.find(i => i.id === machine.allocated_action);
           const allocatedAction = machine.allocated_action
-            ? findTransferItem(this.props.replicas) ||
-              findTransferItem(this.props.migrations)
+            ? findTransferItem(this.props.transfers) ||
+              findTransferItem(this.props.deployments)
             : null;
           return (
             <MachineWrapper key={machine.id}>
@@ -305,14 +305,14 @@ class MinionPoolMachines extends React.Component<Props, State> {
                 <MachineRow secondary>
                   Created At:{" "}
                   {DateUtils.getLocalDate(machine.created_at).toFormat(
-                    "yyyy-LL-dd HH:mm:ss"
+                    "yyyy-LL-dd HH:mm:ss",
                   )}
                 </MachineRow>
                 {machine.updated_at ? (
                   <MachineRow secondary>
                     Updated At:{" "}
                     {DateUtils.getLocalDate(machine.updated_at).toFormat(
-                      "yyyy-LL-dd HH:mm:ss"
+                      "yyyy-LL-dd HH:mm:ss",
                     )}
                   </MachineRow>
                 ) : null}
@@ -320,7 +320,7 @@ class MinionPoolMachines extends React.Component<Props, State> {
                   <MachineRow secondary>
                     Last Used At:{" "}
                     {DateUtils.getLocalDate(machine.last_used_at).toFormat(
-                      "yyyy-LL-dd HH:mm:ss"
+                      "yyyy-LL-dd HH:mm:ss",
                     )}
                   </MachineRow>
                 ) : null}
@@ -329,11 +329,15 @@ class MinionPoolMachines extends React.Component<Props, State> {
                     Allocated Action:
                     {allocatedAction ? (
                       <>
-                        <ItemReplicaBadge style={{ margin: "0px 4px 0 5px" }}>
-                          {allocatedAction.type === "replica" ? "RE" : "MI"}
-                        </ItemReplicaBadge>
+                        <ItemTransferBadge style={{ margin: "0px 4px 0 5px" }}>
+                          {allocatedAction.type === "transfer" ? "TR" : "DE"}
+                        </ItemTransferBadge>
                         <ValueLink
-                          to={`/${allocatedAction.type}s/${allocatedAction.id}`}
+                          to={`/${
+                            allocatedAction.type === "transfer"
+                              ? "transfers"
+                              : "deployments"
+                          }/${allocatedAction.id}`}
                         >
                           {allocatedAction.instances[0]}
                         </ValueLink>

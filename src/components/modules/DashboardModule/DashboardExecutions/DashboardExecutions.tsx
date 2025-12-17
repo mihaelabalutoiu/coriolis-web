@@ -17,7 +17,7 @@ import { observer } from "mobx-react";
 import * as React from "react";
 import styled from "styled-components";
 
-import { MigrationItem, ReplicaItem, TransferItem } from "@src/@types/MainItem";
+import { TransferItem } from "@src/@types/MainItem";
 import DashboardBarChart from "@src/components/modules/DashboardModule/DashboardBarChart";
 import { ThemePalette, ThemeProps } from "@src/components/Theme";
 import DropdownLink from "@src/components/ui/Dropdowns/DropdownLink";
@@ -128,9 +128,8 @@ const EmptyBackgroundImage = styled.div<any>`
 `;
 
 type Props = {
-  // eslint-disable-next-line react/no-unused-prop-types
-  replicas: ReplicaItem[];
-  migrations: MigrationItem[];
+  replicas: TransferItem[];
+  migrations: TransferItem[];
   loading: boolean;
 };
 type GroupedData = {
@@ -177,11 +176,11 @@ class DashboardExecutions extends React.Component<Props, State> {
       .minus(Duration.fromObject({ [periodUnit]: periodValue }))
       .toJSDate();
     creations = creations.filter(
-      e => new Date(e.created_at).getTime() >= oldestDate.getTime()
+      e => new Date(e.created_at).getTime() >= oldestDate.getTime(),
     );
     creations.sort(
       (a, b) =>
-        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
     );
 
     this.groupByPeriod(creations, periodUnit);
@@ -202,9 +201,9 @@ class DashboardExecutions extends React.Component<Props, State> {
       if (!periods[period]) {
         periods[period] = { replicas: 0, migrations: 0 };
       }
-      if (item.type === "replica") {
+      if (item.scenario === "replica") {
         periods[period].replicas += 1;
-      } else if (item.type === "migration") {
+      } else if (item.scenario === "live_migration") {
         periods[period].migrations += 1;
       }
     });
@@ -253,7 +252,7 @@ class DashboardExecutions extends React.Component<Props, State> {
       label: interval.label.replace("{x}", interval.value.split("-")[0]),
     }));
     const selectedItem = INTERVALS.find(
-      i => i.value === this.state.selectedPeriod
+      i => i.value === this.state.selectedPeriod,
     );
     return (
       <DropdownWrapper>

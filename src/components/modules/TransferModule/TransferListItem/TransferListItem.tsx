@@ -16,7 +16,7 @@ import { observer } from "mobx-react";
 import React from "react";
 import styled from "styled-components";
 
-import { getTransferItemTitle, TransferItem } from "@src/@types/MainItem";
+import { getTransferItemTitle, ActionItem } from "@src/@types/MainItem";
 import EndpointLogos from "@src/components/modules/EndpointModule/EndpointLogos";
 import { ThemePalette, ThemeProps } from "@src/components/Theme";
 import Checkbox from "@src/components/ui/Checkbox";
@@ -25,6 +25,8 @@ import DateUtils from "@src/utils/DateUtils";
 
 import arrowImage from "./images/arrow.svg";
 import scheduleImage from "./images/schedule.svg";
+import replicaItemImage from "./images/replica.svg";
+import liveMigrationItemImage from "./images/live-migration.svg";
 
 const CheckboxStyled = styled(Checkbox)`
   opacity: ${props => (props.checked ? 1 : 0)};
@@ -106,10 +108,9 @@ const Column = styled.div`
 `;
 
 type Props = {
-  item: TransferItem;
+  item: ActionItem;
   onClick: () => void;
   selected: boolean;
-  image: string;
   showScheduleIcon?: boolean;
   endpointType: (endpointId: string) => string;
   getUserName: (userId: string) => string | undefined;
@@ -122,6 +123,29 @@ class TransferListItem extends React.Component<Props> {
     return this.props.item.last_execution_status;
   }
 
+  getTransferScenarioType() {
+    let scenario = "";
+    switch (this.props.item.type) {
+      case "transfer":
+        scenario = this.props.item.scenario;
+        break;
+      case "deployment":
+        scenario = this.props.item.transfer_scenario_type;
+        break;
+      default:
+    }
+    return scenario;
+  }
+
+  getListItemImage(): string {
+    const scenario = this.getTransferScenarioType();
+    let image = replicaItemImage;
+    if (scenario === "live_migration") {
+      image = liveMigrationItemImage;
+    }
+    return image;
+  }
+
   renderCreationDate() {
     return (
       <Column
@@ -130,7 +154,7 @@ class TransferListItem extends React.Component<Props> {
         <ItemLabel>Created</ItemLabel>
         <ItemValue>
           {DateUtils.getLocalDate(this.props.item.created_at).toFormat(
-            "dd LLLL yyyy, HH:mm"
+            "dd LLLL yyyy, HH:mm",
           )}
         </ItemValue>
       </Column>
@@ -146,7 +170,7 @@ class TransferListItem extends React.Component<Props> {
         <ItemValue>
           {this.props.item.updated_at
             ? DateUtils.getLocalDate(this.props.item.updated_at).toFormat(
-                "dd LLLL yyyy, HH:mm"
+                "dd LLLL yyyy, HH:mm",
               )
             : "-"}
         </ItemValue>
@@ -175,10 +199,10 @@ class TransferListItem extends React.Component<Props> {
 
   render() {
     const sourceType = this.props.endpointType(
-      this.props.item.origin_endpoint_id
+      this.props.item.origin_endpoint_id,
     );
     const destinationType = this.props.endpointType(
-      this.props.item.destination_endpoint_id
+      this.props.item.destination_endpoint_id,
     );
     const endpointImages = (
       <EndpointsImages>
@@ -196,7 +220,7 @@ class TransferListItem extends React.Component<Props> {
           onChange={this.props.onSelectedChange}
         />
         <Content onClick={this.props.onClick}>
-          <Image image={this.props.image} />
+          <Image image={this.getListItemImage()} />
           <Title>
             <TitleLabel>{getTransferItemTitle(this.props.item)}</TitleLabel>
             <StatusWrapper>
@@ -204,7 +228,7 @@ class TransferListItem extends React.Component<Props> {
                 <StatusPill status={status} style={{ marginRight: "8px" }} />
               ) : null}
               {this.props.showScheduleIcon ? (
-                <ScheduleImage data-tip="The Replica has scheduling enabled and will execute automatically" />
+                <ScheduleImage data-tip="The Transfer has scheduling enabled and will execute automatically" />
               ) : null}
             </StatusWrapper>
           </Title>

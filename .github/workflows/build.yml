@@ -14,7 +14,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v1
         with:
-          node-version: 18.x
+          node-version: 22.x
 
       - name: Setup Corepack
         run: corepack enable
@@ -38,9 +38,8 @@ jobs:
 
       - name: Development build
         env:
-          NODE_OPTIONS: "--openssl-legacy-provider"
           NODE_ENV: development
-        run: npm run build
+        run: npm run build:dev
 
       - name: Run integration tests
         env:
@@ -54,7 +53,7 @@ jobs:
           npm run e2e
 
       - name: Upload failure screenshots
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: cypress-screenshots
@@ -68,4 +67,4 @@ jobs:
       - name: Production build
         env:
           NODE_OPTIONS: "--openssl-legacy-provider"
-        run: npm run build
+        run: npm run build:prod

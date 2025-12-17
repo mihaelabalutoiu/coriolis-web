@@ -15,7 +15,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import * as React from "react";
 import { observer } from "mobx-react";
 import styled from "styled-components";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 
 import StatusIcon from "@src/components/ui/StatusComponents/StatusIcon";
 import StatusImage from "@src/components/ui/StatusComponents/StatusImage";
@@ -23,7 +23,7 @@ import Button from "@src/components/ui/Button";
 import {
   InfoColumn,
   MainItemInfo,
-  ItemReplicaBadge,
+  ItemTransferBadge,
   ItemTitle,
   ItemDescription,
 } from "@src/components/ui/Dropdowns/NotificationDropdown";
@@ -31,7 +31,7 @@ import {
 import type { NotificationItemData } from "@src/@types/NotificationItem";
 
 import { ThemePalette, ThemeProps } from "@src/components/Theme";
-import replicaImage from "./images/replica.svg";
+import transferImage from "./images/transfer.svg";
 
 const Wrapper = styled.div<any>`
   flex-grow: 1;
@@ -80,9 +80,9 @@ const NoItems = styled.div<any>`
   align-items: center;
   width: 100%;
 `;
-const ReplicaImage = styled.div<any>`
+const TransferImage = styled.div<any>`
   ${ThemeProps.exactSize("148px")}
-  background: url('${replicaImage}') center no-repeat;
+  background: url('${transferImage}') center no-repeat;
 `;
 const Message = styled.div<any>`
   text-align: center;
@@ -104,19 +104,22 @@ class DashboardActivity extends React.Component<Props> {
         {this.props.notificationItems
           .filter((_, i) => i < (this.props.large ? 10 : 5))
           .map((item, i) => {
+            const actionHref =
+              item.type === "transfer" ? "transfers" : "deployments";
+
             const executionsHref =
               item.status === "RUNNING"
-                ? item.type === "replica"
+                ? item.type === "transfer"
                   ? "/executions"
-                  : item.type === "migration"
-                  ? "/tasks"
-                  : ""
+                  : item.type === "deployment"
+                    ? "/tasks"
+                    : ""
                 : "";
 
             return (
               <ListItem
                 key={item.id}
-                to={`/${item.type}s/${item.id}${executionsHref}`}
+                to={`/${actionHref}/${item.id}${executionsHref}`}
                 style={{
                   width: `calc(${this.props.large ? 50 : 100}% - 32px)`,
                   paddingTop: i === 0 || i === 5 ? "16px" : "8px",
@@ -125,9 +128,9 @@ class DashboardActivity extends React.Component<Props> {
                 <InfoColumn>
                   <MainItemInfo>
                     <StatusIcon status={item.status} hollow />
-                    <ItemReplicaBadge type={item.type}>
-                      {item.type === "replica" ? "RE" : "MI"}
-                    </ItemReplicaBadge>
+                    <ItemTransferBadge type={item.type}>
+                      {item.type === "transfer" ? "TR" : "DE"}
+                    </ItemTransferBadge>
                     <ItemTitle nowrap>{item.name}</ItemTitle>
                   </MainItemInfo>
                   <ItemDescription>{item.description}</ItemDescription>
@@ -142,14 +145,14 @@ class DashboardActivity extends React.Component<Props> {
   renderNoItems() {
     return (
       <NoItems>
-        <ReplicaImage />
+        <TransferImage />
         <Message>
           There is no recent activity
           <br />
           in this project.
         </Message>
         <Button hollow primary transparent onClick={this.props.onNewClick}>
-          New Replica / Migration
+          New Transfer
         </Button>
       </NoItems>
     );
@@ -171,8 +174,8 @@ class DashboardActivity extends React.Component<Props> {
           {this.props.notificationItems.length === 0 && this.props.loading
             ? this.renderLoading()
             : this.props.notificationItems.length
-            ? this.renderList()
-            : this.renderNoItems()}
+              ? this.renderList()
+              : this.renderNoItems()}
         </Module>
       </Wrapper>
     );

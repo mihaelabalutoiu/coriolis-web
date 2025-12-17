@@ -16,8 +16,9 @@ import autobind from "autobind-decorator";
 import { observer } from "mobx-react";
 import React from "react";
 import styled from "styled-components";
+import { useNavigate, useParams } from "react-router";
 
-import { ReplicaItem, TransferItem } from "@src/@types/MainItem";
+import { TransferItem, ActionItem } from "@src/@types/MainItem";
 import { ProviderTypes } from "@src/@types/Providers";
 import DetailsPageHeader from "@src/components/modules/DetailsModule/DetailsPageHeader";
 import EndpointModal from "@src/components/modules/EndpointModule/EndpointModal";
@@ -25,8 +26,14 @@ import WizardTemplate from "@src/components/modules/TemplateModule/WizardTemplat
 import { WizardNetworksChangeObject } from "@src/components/modules/WizardModule/WizardNetworks";
 import WizardPageContent from "@src/components/modules/WizardModule/WizardPageContent";
 import Modal from "@src/components/ui/Modal";
-import { executionOptions, providerTypes, wizardPages } from "@src/constants";
 import endpointStore from "@src/stores/EndpointStore";
+import {
+  executeOptionsWithExecuteNow,
+  deploymentFields,
+  providerTypes,
+  wizardPages,
+  executionOptions,
+} from "@src/constants";
 import instanceStore from "@src/stores/InstanceStore";
 import minionPoolStore from "@src/stores/MinionPoolStore";
 import networkStore from "@src/stores/NetworkStore";
@@ -34,7 +41,7 @@ import notificationStore from "@src/stores/NotificationStore";
 import providerStore, {
   getFieldChangeOptions,
 } from "@src/stores/ProviderStore";
-import replicaStore from "@src/stores/ReplicaStore";
+import transferStore from "@src/stores/TransferStore";
 import scheduleStore from "@src/stores/ScheduleStore";
 import userStore from "@src/stores/UserStore";
 import wizardStore from "@src/stores/WizardStore";
@@ -53,8 +60,8 @@ const Wrapper = styled.div<any>``;
 
 type Props = {
   match: any;
-  location: { search: string };
-  history: any;
+  location?: { search: string };
+  onNavigate: (path: string) => void;
 };
 type WizardType = "migration" | "replica";
 type State = {
@@ -118,9 +125,9 @@ class WizardPage extends React.Component<Props, State> {
       Math.max(
         min,
         Math.floor(
-          (window.innerHeight - instancesTableDiff) / instancesItemHeight
-        )
-      )
+          (window.innerHeight - instancesTableDiff) / instancesItemHeight,
+        ),
+      ),
     );
   }
 
@@ -132,7 +139,7 @@ class WizardPage extends React.Component<Props, State> {
       providerStore.providers &&
       providerStore.providers[destProvider]
         ? !!providerStore.providers[destProvider].types.find(
-            t => t === providerTypes.STORAGE
+            t => t === providerTypes.STORAGE,
           )
         : false;
 
@@ -143,7 +150,7 @@ class WizardPage extends React.Component<Props, State> {
 
   get requiresWindowsImage() {
     return Boolean(
-      wizardStore.data.selectedInstances?.find(i => i.os_type === "windows")
+      wizardStore.data.selectedInstances?.find(i => i.os_type === "windows"),
     );
   }
 
@@ -188,36 +195,29 @@ class WizardPage extends React.Component<Props, State> {
     this.handleBackClick();
   }
 
-  async handleCreationSuccess(items: TransferItem[]) {
+  async handleCreationSuccess(items: ActionItem[]) {
     const typeLabel =
       this.state.type.charAt(0).toUpperCase() + this.state.type.substr(1);
     notificationStore.alert(
-      `${typeLabel}${items.length > 1 ? "s" : ""} was succesfully created`,
-      "success"
+      `${typeLabel}${items.length > 1 ? "s" : ""} was successfully created`,
+      "success",
     );
     let schedulePromise = Promise.resolve();
 
-    if (this.state.type === "replica") {
-      items.forEach(replica => {
-        if (replica.type !== "replica") {
-          return;
-        }
-        this.executeCreatedReplica(replica);
-        schedulePromise = this.scheduleReplica(replica);
-      });
-    }
+    items.forEach(transfer => {
+      if (transfer.type !== "transfer") {
+        return;
+      }
+      this.executeCreatedTransfer(transfer);
+      schedulePromise = this.scheduleTransfer(transfer);
+    });
 
     if (items.length === 1) {
-      let location = `/${this.state.type}s/${items[0].id}/`;
-      if (this.state.type === "replica") {
-        location += "executions";
-      } else {
-        location += "tasks";
-      }
+      const location = `/transfers/${items[0].id}/executions`;
       await schedulePromise;
-      this.props.history.push(location);
+      this.props.onNavigate(location);
     } else {
-      this.props.history.push(`/${this.state.type}s`);
+      this.props.onNavigate(`/transfers`);
     }
   }
 
@@ -241,20 +241,21 @@ class WizardPage extends React.Component<Props, State> {
     });
     wizardStore.clearStorageMap();
     const type = isReplica ? "replica" : "migration";
-    this.props.history.replace(`/wizard/${type}`);
+    this.props.onNavigate(`/wizard/${type}`);
+    this.setState({ type });
   }
 
   handleStorageReloadClick() {
     endpointStore.loadStorage(
       wizardStore.data.target!.id,
-      wizardStore.data.destOptions
+      wizardStore.data.destOptions,
     );
   }
 
   handleBackClick() {
     this.setState({ nextButtonDisabled: false });
     const currentPageIndex = this.pages.findIndex(
-      p => p.id === wizardStore.currentPage.id
+      p => p.id === wizardStore.currentPage.id,
     );
 
     if (currentPageIndex === 0) {
@@ -269,7 +270,7 @@ class WizardPage extends React.Component<Props, State> {
 
   handleNextClick() {
     const currentPageIndex = this.pages.findIndex(
-      p => p.id === wizardStore.currentPage.id
+      p => p.id === wizardStore.currentPage.id,
     );
 
     if (currentPageIndex === this.pages.length - 1) {
@@ -326,7 +327,7 @@ class WizardPage extends React.Component<Props, State> {
     });
     wizardStore.fillWithDefaultValues(
       "destination",
-      providerStore.destinationSchema
+      providerStore.destinationSchema,
     );
     // Preload destination options values
     await providerStore.getOptionsValues({
@@ -338,14 +339,14 @@ class WizardPage extends React.Component<Props, State> {
     });
     wizardStore.fillWithDefaultValues(
       "destination",
-      providerStore.destinationSchema
+      providerStore.destinationSchema,
     );
     await this.loadExtraOptions({ type: "destination" });
   }
 
   handleAddEndpoint(
     newEndpointType: ProviderTypes,
-    newEndpointFromSource: boolean
+    newEndpointFromSource: boolean,
   ) {
     this.setState({
       showNewEndpointModal: true,
@@ -377,7 +378,7 @@ class WizardPage extends React.Component<Props, State> {
       instanceStore.reloadInstances(
         wizardStore.data.source,
         this.instancesPerPage,
-        wizardStore.data.sourceOptions
+        wizardStore.data.sourceOptions,
       );
     }
   }
@@ -417,7 +418,7 @@ class WizardPage extends React.Component<Props, State> {
   handleSourceOptionsChange(
     field: Field,
     value: any,
-    parentFieldName?: string
+    parentFieldName?: string,
   ) {
     wizardStore.updateData({ selectedInstances: [] });
     wizardStore.updateSourceOptions({ field, value, parentFieldName });
@@ -428,6 +429,15 @@ class WizardPage extends React.Component<Props, State> {
       this.loadExtraOptions({ field, type: "source", parentFieldName });
     }
     wizardStore.updateUrlState();
+  }
+
+  handleTransferExecuteOptionsChange(field: Field, value: any) {
+    wizardStore.updateData({
+      executeOptions: {
+        ...wizardStore.data.executeOptions,
+        [field.name]: value,
+      },
+    });
   }
 
   handleNetworkChange(changeObject: WizardNetworksChangeObject) {
@@ -510,6 +520,21 @@ class WizardPage extends React.Component<Props, State> {
     if (wizardStore.currentPage.id !== wizardPages[0].id) {
       this.loadDataForPage(wizardStore.currentPage);
     }
+
+    if (!wizardStore.data.executeOptions) {
+      wizardStore.updateData({
+        executeOptions: [
+          ...executeOptionsWithExecuteNow,
+          ...deploymentFields,
+        ].reduce(
+          (acc, option) => {
+            acc[option.name] = option.defaultValue;
+            return acc;
+          },
+          {} as { [key: string]: any },
+        ),
+      });
+    }
   }
 
   async loadExtraOptions(opts: {
@@ -563,7 +588,7 @@ class WizardPage extends React.Component<Props, State> {
   async loadDataForPage(page: WizardPageType) {
     const loadOptions = async (
       endpoint: EndpointType,
-      optionsType: "source" | "destination"
+      optionsType: "source" | "destination",
     ) => {
       await providerStore.loadOptionsSchema({
         providerName: endpoint.type,
@@ -643,7 +668,7 @@ class WizardPage extends React.Component<Props, State> {
         // Preload storage API calls
         endpointStore.loadStorage(
           wizardStore.data.target!.id,
-          wizardStore.data.destOptions
+          wizardStore.data.destOptions,
         );
         this.loadNetworks(true);
         break;
@@ -684,7 +709,7 @@ class WizardPage extends React.Component<Props, State> {
     });
     if (success && wizardStore.createdItems) {
       this.handleCreationSuccess(
-        wizardStore.createdItems.filter(ObjectUtils.notEmpty)
+        wizardStore.createdItems.filter(ObjectUtils.notEmpty),
       );
     } else {
       this.setState({ nextButtonDisabled: false });
@@ -773,16 +798,16 @@ class WizardPage extends React.Component<Props, State> {
     );
   }
 
-  scheduleReplica(replica: ReplicaItem): Promise<void> {
+  scheduleTransfer(transfer: TransferItem): Promise<void> {
     if (wizardStore.schedules.length === 0) {
       return Promise.resolve();
     }
 
-    return scheduleStore.scheduleMultiple(replica.id, wizardStore.schedules);
+    return scheduleStore.scheduleMultiple(transfer.id, wizardStore.schedules);
   }
 
-  executeCreatedReplica(replica: ReplicaItem) {
-    const options = wizardStore.data.destOptions;
+  executeCreatedTransfer(transfer: TransferItem) {
+    const options = wizardStore.data.executeOptions;
     let executeNow = true;
     if (options && options.execute_now != null) {
       executeNow = options.execute_now;
@@ -792,19 +817,19 @@ class WizardPage extends React.Component<Props, State> {
     }
 
     const executeNowOptions = executionOptions.map(field => {
-      const value = options?.execute_now_options?.[field.name];
+      const value = wizardStore.data.executeOptions?.[field.name];
       if (value != null) {
         return { name: field.name, value };
       }
       return field;
     });
 
-    replicaStore.execute(replica.id, executeNowOptions);
+    transferStore.execute(transfer.id, executeNowOptions);
   }
 
   handleCancelUploadedScript(
     global: string | null,
-    instanceName: string | null
+    instanceName: string | null,
   ) {
     wizardStore.cancelUploadedScript(global, instanceName);
   }
@@ -837,7 +862,7 @@ class WizardPage extends React.Component<Props, State> {
               wizardData={wizardStore.data}
               hasStorageMap={Boolean(this.pages.find(p => p.id === "storage"))}
               hasSourceOptions={Boolean(
-                this.pages.find(p => p.id === "source-options")
+                this.pages.find(p => p.id === "source-options"),
               )}
               defaultStorage={wizardStore.defaultStorage}
               storageMap={wizardStore.storageMap}
@@ -918,6 +943,9 @@ class WizardPage extends React.Component<Props, State> {
               onUserScriptUpload={s => {
                 this.handleUserScriptUpload(s);
               }}
+              onTransferExecuteOptionsChange={(field, value) => {
+                this.handleTransferExecuteOptionsChange(field, value);
+              }}
             />
           }
         />
@@ -940,4 +968,11 @@ class WizardPage extends React.Component<Props, State> {
   }
 }
 
-export default WizardPage;
+function WizardPageWithNavigate() {
+  const navigate = useNavigate();
+  const params = useParams();
+
+  return <WizardPage onNavigate={navigate} match={params} />;
+}
+
+export default WizardPageWithNavigate;

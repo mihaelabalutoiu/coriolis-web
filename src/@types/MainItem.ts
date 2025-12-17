@@ -31,6 +31,7 @@ export type MainItemInfo = {
 export type UpdateData = {
   destination: any;
   source: any;
+  deploy: any;
   network: NetworkMap[];
   storage: StorageMap[];
   uploadedScripts: InstanceScript[];
@@ -44,7 +45,7 @@ type NetworkMapSourceDest = {
   };
 };
 export const isNetworkMapSecurityGroups = (
-  n: any
+  n: any,
 ): n is NetworkMapSecurityGroups =>
   typeof n !== "string" && n && n.security_groups;
 export const isNetworkMapSourceDest = (n: any): n is NetworkMapSourceDest =>
@@ -83,17 +84,20 @@ type BaseItem = {
   destination_environment: { [prop: string]: any };
   source_environment: { [prop: string]: any };
   transfer_result: { [prop: string]: Instance } | null;
-  replication_count?: number;
+  // replication_count?: number;
   storage_mappings?: StorageMapping | null;
   network_map?: TransferNetworkMap;
   last_execution_status: string;
   user_id: string;
   instance_osmorphing_minion_pool_mappings?: { [instanceName: string]: string };
   user_scripts?: UserScriptData;
+  clone_disks: boolean;
+  skip_os_morphing: boolean;
 };
 
-export type ReplicaItem = BaseItem & {
-  type: "replica";
+export type TransferItem = BaseItem & {
+  type: "transfer";
+  scenario: string;
 };
 
 export type UserScriptData = {
@@ -106,29 +110,30 @@ export type UserScriptData = {
   };
 };
 
-export type MigrationItem = BaseItem & {
-  type: "migration";
-  replica_id?: string;
+export type DeploymentItem = BaseItem & {
+  type: "deployment";
+  transfer_id: string;
+  transfer_scenario_type: string;
+  deployer_id: string;
 };
 
-export type MigrationItemOptions = MigrationItem & {
+export type DeploymentItemOptions = DeploymentItem & {
   skip_os_morphing: boolean;
-  shutdown_instances: boolean;
 };
 
-export type TransferItem = ReplicaItem | MigrationItem;
+export type ActionItem = TransferItem | DeploymentItem;
 
-export type ReplicaItemDetails = ReplicaItem & {
+export type TransferItemDetails = TransferItem & {
   executions: Execution[];
 };
 
-export type MigrationItemDetails = MigrationItem & {
+export type DeploymentItemDetails = DeploymentItem & {
   tasks: Task[];
 };
 
-export type TransferItemDetails = ReplicaItemDetails | MigrationItemDetails;
+export type ActionItemDetails = TransferItemDetails | DeploymentItemDetails;
 
-export const getTransferItemTitle = (item: TransferItem | null) => {
+export const getTransferItemTitle = (item: ActionItem | null) => {
   if (!item) {
     return null;
   }

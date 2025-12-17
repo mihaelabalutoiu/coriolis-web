@@ -22,8 +22,9 @@ import type { WizardData } from "@src/@types/WizardData";
 import type { StorageMap } from "@src/@types/Endpoint";
 import type { InstanceScript } from "@src/@types/Instance";
 import DefaultOptionsSchemaParser from "@src/plugins/default/OptionsSchemaPlugin";
-import { TransferItem } from "@src/@types/MainItem";
+import { ActionItem } from "@src/@types/MainItem";
 import { INSTANCE_OSMORPHING_MINION_POOL_MAPPINGS } from "@src/components/modules/WizardModule/WizardOptions";
+import { deploymentFields } from "@src/constants";
 
 class WizardSource {
   async create(opts: {
@@ -34,7 +35,7 @@ class WizardSource {
       | undefined;
     storageMap: StorageMap[];
     uploadedUserScripts: InstanceScript[];
-  }): Promise<TransferItem> {
+  }): Promise<ActionItem> {
     const { type, data, defaultStorage, storageMap, uploadedUserScripts } =
       opts;
     const sourceParser = data.source
@@ -43,8 +44,9 @@ class WizardSource {
     const destParser = data.target
       ? OptionsSchemaPlugin.for(data.target.type)
       : new DefaultOptionsSchemaParser();
-    const payload: any = {};
-    payload[type] = {
+
+    let payload: any = {};
+    payload = {
       origin_endpoint_id: data.source ? data.source.id : "null",
       destination_endpoint_id: data.target ? data.target.id : "null",
       network_map: destParser.getNetworkMap(data.networks),
@@ -56,21 +58,20 @@ class WizardSource {
     };
 
     if (data.destOptions && data.destOptions.skip_os_morphing != null) {
-      payload[type].skip_os_morphing = data.destOptions.skip_os_morphing;
+      payload.skip_os_morphing = data.destOptions.skip_os_morphing;
     }
 
     if (data.sourceOptions) {
       const sourceEnv = sourceParser.getDestinationEnv(data.sourceOptions);
       if (data.sourceOptions.minion_pool_id) {
-        payload[type].origin_minion_pool_id = data.sourceOptions.minion_pool_id;
+        payload.origin_minion_pool_id = data.sourceOptions.minion_pool_id;
       }
-      payload[type].source_environment = sourceEnv;
+      payload.source_environment = sourceEnv;
     }
 
     const destEnv = destParser.getDestinationEnv(data.destOptions);
     if (data.destOptions?.minion_pool_id) {
-      payload[type].destination_minion_pool_id =
-        data.destOptions.minion_pool_id;
+      payload.destination_minion_pool_id = data.destOptions.minion_pool_id;
     }
 
     const poolMappings = destEnv[INSTANCE_OSMORPHING_MINION_POOL_MAPPINGS];
@@ -78,12 +79,12 @@ class WizardSource {
       Object.keys(poolMappings).forEach(instanceId => {
         if (
           poolMappings[instanceId] &&
-          payload[type].instances.find((i: string) => i === instanceId)
+          payload.instances.find((i: string) => i === instanceId)
         ) {
-          if (!payload[type][INSTANCE_OSMORPHING_MINION_POOL_MAPPINGS]) {
-            payload[type][INSTANCE_OSMORPHING_MINION_POOL_MAPPINGS] = {};
+          if (!payload[INSTANCE_OSMORPHING_MINION_POOL_MAPPINGS]) {
+            payload[INSTANCE_OSMORPHING_MINION_POOL_MAPPINGS] = {};
           }
-          payload[type][INSTANCE_OSMORPHING_MINION_POOL_MAPPINGS][instanceId] =
+          payload[INSTANCE_OSMORPHING_MINION_POOL_MAPPINGS][instanceId] =
             poolMappings[instanceId];
         }
       });
@@ -91,31 +92,35 @@ class WizardSource {
 
     delete destEnv[INSTANCE_OSMORPHING_MINION_POOL_MAPPINGS];
 
-    payload[type].destination_environment = destEnv;
-
-    payload[type].shutdown_instances = Boolean(
-      data.destOptions && data.destOptions.shutdown_instances
-    );
+    payload.destination_environment = destEnv;
 
     if (uploadedUserScripts.length) {
-      payload[type].user_scripts = destParser.getUserScripts(
+      payload.user_scripts = destParser.getUserScripts(
         uploadedUserScripts,
         [],
-        {}
+        {},
       );
     }
 
-    if (type === "migration") {
-      payload[type].replication_count =
-        data.destOptions?.replication_count || 2;
-    }
-
-    const response = await Api.send({
-      url: `${configLoader.config.servicesUrls.coriolis}/${Api.projectId}/${type}s`,
-      method: "POST",
-      data: payload,
+    deploymentFields.forEach(option => {
+      if (
+        data.executeOptions &&
+        data.executeOptions[option.name] !== undefined
+      ) {
+        payload[option.name] = data.executeOptions[option.name];
+      }
     });
-    return response.data[type];
+
+    const scenario = type == "replica" ? "replica" : "live_migration";
+    payload.scenario = scenario;
+
+    const payload_body_key = "transfer";
+    const response = await Api.send({
+      url: `${configLoader.config.servicesUrls.coriolis}/${Api.projectId}/transfers`,
+      method: "POST",
+      data: { [payload_body_key]: payload },
+    });
+    return response.data[payload_body_key];
   }
 
   async createMultiple(opts: {
@@ -141,7 +146,7 @@ class WizardSource {
           instance.name || instance.instance_name || instance.id;
         newData.destOptions = newDestOptions;
 
-        let mainItem: TransferItem | null = null;
+        let mainItem: ActionItem | null = null;
         try {
           mainItem = await this.create({
             type,
@@ -155,7 +160,7 @@ class WizardSource {
           // eslint-disable-next-line no-unsafe-finally
           return mainItem;
         }
-      })
+      }),
     );
     return mainItems;
   }
@@ -169,7 +174,7 @@ class WizardSource {
     window.history.replaceState(
       {},
       "",
-      `${location}?d=${DomUtils.encodeToBase64Url(data)}`
+      `${location}?d=${DomUtils.encodeToBase64Url(data)}`,
     );
   }
 

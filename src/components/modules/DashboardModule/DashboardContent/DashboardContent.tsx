@@ -30,7 +30,7 @@ import type { Project } from "@src/@types/Project";
 import type { User } from "@src/@types/User";
 import type { Licence, LicenceServerStatus } from "@src/@types/Licence";
 import type { NotificationItemData } from "@src/@types/NotificationItem";
-import { ReplicaItem, MigrationItem } from "@src/@types/MainItem";
+import { TransferItem, DeploymentItem } from "@src/@types/MainItem";
 
 const MIDDLE_WIDTHS = ["264px", "264px", "264px"];
 
@@ -52,12 +52,12 @@ const MiddleMobileLayout = styled.div<any>`
 `;
 
 type Props = {
-  replicas: ReplicaItem[];
-  migrations: MigrationItem[];
+  transfers: TransferItem[];
+  deployments: DeploymentItem[];
   endpoints: Endpoint[];
   projects: Project[];
-  replicasLoading: boolean;
-  migrationsLoading: boolean;
+  transfersLoading: boolean;
+  deploymentsLoading: boolean;
   endpointsLoading: boolean;
   usersLoading: boolean;
   projectsLoading: boolean;
@@ -69,7 +69,7 @@ type Props = {
   licenceError: string | null;
   notificationItems: NotificationItemData[];
   isAdmin: boolean;
-  onNewReplicaClick: () => void;
+  onNewTransferClick: () => void;
   onNewEndpointClick: () => void;
   onAddLicenceClick: () => void;
 };
@@ -122,16 +122,15 @@ class DashboardContent extends React.Component<Props, State> {
                 width: MIDDLE_WIDTHS[0],
               }
         }
-        onNewClick={this.props.onNewReplicaClick}
+        onNewClick={this.props.onNewTransferClick}
       />,
       <DashboardTopEndpoints
         key="top-endpoints"
-        replicas={this.props.replicas}
-        migrations={this.props.migrations}
+        transfers={this.props.transfers}
         endpoints={this.props.endpoints}
         loading={
-          this.props.replicasLoading ||
-          this.props.migrationsLoading ||
+          this.props.transfersLoading ||
+          this.props.deploymentsLoading ||
           this.props.endpointsLoading
         }
         style={{
@@ -175,21 +174,33 @@ class DashboardContent extends React.Component<Props, State> {
     );
   }
 
+  getReplicas() {
+    return this.props.transfers.filter(
+      (r: TransferItem) => r.scenario === "replica",
+    );
+  }
+
+  getLiveMigrations() {
+    return this.props.transfers.filter(
+      (r: TransferItem) => r.scenario === "live_migration",
+    );
+  }
+
   render() {
     let infoCountData = [
       {
         label: "Replicas",
-        value: this.props.replicas.length,
+        value: this.getReplicas().length,
         color: ThemePalette.alert,
-        link: "/replicas",
-        loading: this.props.replicasLoading,
+        link: "/transfers",
+        loading: this.props.transfersLoading,
       },
       {
         label: "Migrations",
-        value: this.props.migrations.length,
+        value: this.getLiveMigrations().length,
         color: ThemePalette.primary,
-        link: "/migrations",
-        loading: this.props.migrationsLoading,
+        link: "/transfers",
+        loading: this.props.transfersLoading,
       },
       {
         label: "Endpoints",
@@ -224,9 +235,9 @@ class DashboardContent extends React.Component<Props, State> {
         <DashboardInfoCount data={infoCountData} />
         {this.renderMiddleModules()}
         <DashboardExecutions
-          replicas={this.props.replicas}
-          migrations={this.props.migrations}
-          loading={this.props.replicasLoading || this.props.migrationsLoading}
+          replicas={this.getReplicas()}
+          migrations={this.getLiveMigrations()}
+          loading={this.props.transfersLoading || this.props.deploymentsLoading}
         />
       </Wrapper>
     );

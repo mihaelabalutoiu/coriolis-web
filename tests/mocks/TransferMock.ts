@@ -1,18 +1,19 @@
 import {
-  MigrationItem,
-  MigrationItemDetails,
-  ReplicaItem,
-  ReplicaItemDetails,
+  DeploymentItem,
+  DeploymentItemDetails,
+  TransferItem,
+  TransferItemDetails,
 } from "@src/@types/MainItem";
 import { EXECUTION_MOCK, TASK_MOCK } from "@tests/mocks/ExecutionsMock";
 import { INSTANCE_MOCK } from "@tests/mocks/InstancesMock";
 
-export const REPLICA_MOCK: ReplicaItem = {
-  id: "replica-id",
-  name: "replica-name",
-  type: "replica",
-  description: "replica-description",
-  notes: "replica-notes",
+export const TRANSFER_MOCK: TransferItem = {
+  id: "transfer-id",
+  name: "transfer-name",
+  type: "transfer",
+  scenario: "replica",
+  description: "transfer-description",
+  notes: "transfer-notes",
   created_at: "2023-11-26T12:00:00Z",
   updated_at: "2023-11-26T12:00:00Z",
   origin_endpoint_id: "vmware",
@@ -65,17 +66,20 @@ export const REPLICA_MOCK: ReplicaItem = {
   },
 };
 
-export const REPLICA_ITEM_DETAILS_MOCK: ReplicaItemDetails = {
-  ...REPLICA_MOCK,
+export const TRANSFER_ITEM_DETAILS_MOCK: TransferItemDetails = {
+  ...TRANSFER_MOCK,
   executions: [EXECUTION_MOCK],
 };
 
-export const MIGRATION_MOCK: MigrationItem = {
-  id: "migration-id",
-  name: "migration-name",
-  type: "migration",
-  description: "migration-description",
-  notes: "migration-notes",
+export const DEPLOYMENT_MOCK: DeploymentItem = {
+  id: "deployment-id",
+  name: "deployment-name",
+  type: "deployment",
+  transfer_id: "deployment-transfer-id",
+  transfer_scenario_type: "replica",
+  deployer_id: "deployer-id",
+  description: "deployment-description",
+  notes: "deployment-notes",
   created_at: "2023-11-26T12:00:00Z",
   updated_at: "2023-11-26T12:00:00Z",
   origin_endpoint_id: "openstack",
@@ -89,9 +93,23 @@ export const MIGRATION_MOCK: MigrationItem = {
   transfer_result: {},
   last_execution_status: "COMPLETED",
   user_id: "user-id",
+  instance_osmorphing_minion_pool_mappings: {
+    "instance-id": "minion-pool-id",
+  },
+  user_scripts: {
+    global: {
+      linux: "linux-script",
+      windows: "windows-script",
+    },
+    instances: {
+      "instance-id": "instance-script",
+    },
+  },
+  clone_disks: true,
+  skip_os_morphing: false,
 };
 
-export const MIGRATION_ITEM_DETAILS_MOCK: MigrationItemDetails = {
-  ...MIGRATION_MOCK,
-  tasks: [{ ...TASK_MOCK, task_type: "migration_task" }],
+export const DEPLOYMENT_ITEM_DETAILS_MOCK: DeploymentItemDetails = {
+  ...DEPLOYMENT_MOCK,
+  tasks: [{ ...TASK_MOCK, task_type: "deployment_task" }],
 };

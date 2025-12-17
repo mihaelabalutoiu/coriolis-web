@@ -14,11 +14,14 @@ const envKeys = Object.keys(env).reduce((prev, next) => {
   return prev;
 }, {});
 
+envKeys["process.env"] = JSON.stringify(env);
+const isDevelopment = process.env.NODE_ENV === "development";
+
 module.exports = {
   entry: "./src/index.tsx",
   output: {
-    filename: "[name].[hash].bundle.js",
-    chunkFilename: "[name].[hash].bundle.js",
+    filename: "[name].[contenthash].bundle.js",
+    chunkFilename: "[name].[contenthash].bundle.js",
     path: path.resolve(__dirname, "dist"),
     publicPath: "/",
   },
@@ -26,8 +29,20 @@ module.exports = {
   plugins: [
     new webpack.DefinePlugin(envKeys),
     new CleanWebpackPlugin(),
-    new CopyPlugin({ patterns: ["./public"] }),
-    new HtmlWebpackPlugin({ template: "./public/index.html" }),
+    new CopyPlugin({
+      patterns: [
+        {
+          from: path.resolve(__dirname, "public"),
+          globOptions: {
+            ignore: ["**/index.html"],
+          },
+          noErrorOnMissing: true,
+        },
+      ],
+    }),
+    new HtmlWebpackPlugin({
+      template: "./public/index.html",
+    }),
   ],
   resolve: {
     modules: [__dirname, "src", "node_modules"],
@@ -41,14 +56,27 @@ module.exports = {
       {
         test: /\.tsx?$/,
         exclude: /node_modules/,
-        loader: require.resolve("babel-loader"),
+        use: [
+          {
+            loader: require.resolve("babel-loader"),
+            options: {
+              plugins: [
+                isDevelopment && require.resolve("react-refresh/babel"),
+              ].filter(Boolean),
+            },
+          },
+        ],
       },
       {
         test: /\.(png|jpe?g|svg|woff2?|ttf|eot)$/,
-        loader: "url-loader",
-        options: {
-          limit: 8192,
-          name: "./assets/[hash].[ext]",
+        type: "asset",
+        parser: {
+          dataUrlCondition: {
+            maxSize: 8192,
+          },
+        },
+        generator: {
+          filename: "assets/[name].[contenthash][ext]",
         },
       },
     ],
@@ -56,7 +84,7 @@ module.exports = {
   optimization: {
     splitChunks: {
       cacheGroups: {
-        vendor: {
+        defaultVendors: {
           test: /node_modules/,
           chunks: "initial",
           name: "vendor",

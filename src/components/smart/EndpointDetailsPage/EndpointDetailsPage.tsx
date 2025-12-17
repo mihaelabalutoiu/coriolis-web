@@ -15,6 +15,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import React from "react";
 import styled from "styled-components";
 import { observer } from "mobx-react";
+import { useNavigate, useParams } from "react-router";
 
 import DetailsTemplate from "@src/components/modules/TemplateModule/DetailsTemplate";
 import DetailsPageHeader from "@src/components/modules/DetailsModule/DetailsPageHeader";
@@ -27,8 +28,8 @@ import EndpointModal from "@src/components/modules/EndpointModule/EndpointModal"
 import EndpointDuplicateOptions from "@src/components/modules/EndpointModule/EndpointDuplicateOptions";
 
 import endpointStore from "@src/stores/EndpointStore";
-import migrationStore from "@src/stores/MigrationStore";
-import replicaStore from "@src/stores/ReplicaStore";
+import deploymentStore from "@src/stores/DeploymentStore";
+import transferStore from "@src/stores/TransferStore";
 import userStore from "@src/stores/UserStore";
 import projectStore from "@src/stores/ProjectStore";
 
@@ -37,15 +38,15 @@ import type { Endpoint as EndpointType } from "@src/@types/Endpoint";
 import { ThemePalette } from "@src/components/Theme";
 
 import regionStore from "@src/stores/RegionStore";
-import { MigrationItem, ReplicaItem } from "@src/@types/MainItem";
+import { DeploymentItem, TransferItem } from "@src/@types/MainItem";
 import providerStore from "@src/stores/ProviderStore";
 import endpointImage from "./images/endpoint.svg";
 
 const Wrapper = styled.div<any>``;
 
 type Props = {
-  match: any;
-  history: any;
+  id: any;
+  onNavigate: (path: string) => void;
 };
 type State = {
   showDeleteEndpointConfirmation: boolean;
@@ -53,7 +54,7 @@ type State = {
   showEndpointModal: boolean;
   showEndpointInUseModal: boolean;
   showEndpointInUseLoadingModal: boolean;
-  endpointUsage: { replicas: ReplicaItem[]; migrations: MigrationItem[] };
+  endpointUsage: { transfers: TransferItem[]; deployments: DeploymentItem[] };
   showDuplicateModal: boolean;
   duplicating: boolean;
 };
@@ -67,7 +68,7 @@ class EndpointDetailsPage extends React.Component<Props, State> {
     showEndpointInUseLoadingModal: false,
     showDuplicateModal: false,
     duplicating: false,
-    endpointUsage: { replicas: [], migrations: [] },
+    endpointUsage: { transfers: [], deployments: [] },
   };
 
   componentDidMount() {
@@ -81,26 +82,26 @@ class EndpointDetailsPage extends React.Component<Props, State> {
   }
 
   get endpoint(): EndpointType | null {
-    return (
-      endpointStore.endpoints.find(e => e.id === this.props.match.params.id) ||
-      null
-    );
+    return endpointStore.endpoints.find(e => e.id === this.props.id) || null;
   }
 
-  getEndpointUsage(): { migrations: MigrationItem[]; replicas: ReplicaItem[] } {
-    const endpointId = this.props.match.params.id;
-    const replicas = replicaStore.replicas.filter(
+  getEndpointUsage(): {
+    deployments: DeploymentItem[];
+    transfers: TransferItem[];
+  } {
+    const endpointId = this.props.id;
+    const transfers = transferStore.transfers.filter(
       r =>
         r.origin_endpoint_id === endpointId ||
-        r.destination_endpoint_id === endpointId
+        r.destination_endpoint_id === endpointId,
     );
-    const migrations = migrationStore.migrations.filter(
+    const deployments = deploymentStore.deployments.filter(
       r =>
         r.origin_endpoint_id === endpointId ||
-        r.destination_endpoint_id === endpointId
+        r.destination_endpoint_id === endpointId,
     );
 
-    return { migrations, replicas };
+    return { deployments, transfers: transfers };
   }
 
   handleUserItemClick(item: { value: string }) {
@@ -116,14 +117,14 @@ class EndpointDetailsPage extends React.Component<Props, State> {
     this.setState({ showEndpointInUseLoadingModal: true });
 
     await Promise.all([
-      replicaStore.getReplicas(),
-      migrationStore.getMigrations(),
+      transferStore.getTransfers(),
+      deploymentStore.getDeployments(),
     ]);
     const endpointUsage = this.getEndpointUsage();
 
     if (
-      endpointUsage.migrations.length === 0 &&
-      endpointUsage.replicas.length === 0
+      endpointUsage.deployments.length === 0 &&
+      endpointUsage.transfers.length === 0
     ) {
       this.setState({
         showDeleteEndpointConfirmation: true,
@@ -142,7 +143,7 @@ class EndpointDetailsPage extends React.Component<Props, State> {
     if (this.endpoint) {
       endpointStore.delete(this.endpoint);
     }
-    this.props.history.push("/endpoints");
+    this.props.onNavigate("/endpoints");
   }
 
   handleCloseDeleteEndpointConfirmation() {
@@ -203,7 +204,7 @@ class EndpointDetailsPage extends React.Component<Props, State> {
       endpoints: [endpoint],
       onSwitchProject: () => userStore.switchProject(projectId),
     });
-    this.props.history.push("/endpoints");
+    this.props.onNavigate("/endpoints");
   }
 
   handleExportToJsonClick() {
@@ -219,8 +220,8 @@ class EndpointDetailsPage extends React.Component<Props, State> {
     this.loadEndpoints();
 
     await Promise.all([
-      replicaStore.getReplicas(),
-      migrationStore.getMigrations(),
+      transferStore.getTransfers(),
+      deploymentStore.getDeployments(),
       regionStore.getRegions(),
     ]);
     this.setState({ endpointUsage: this.getEndpointUsage() });
@@ -306,7 +307,7 @@ class EndpointDetailsPage extends React.Component<Props, State> {
             <EndpointDetailsContent
               item={endpoint}
               regions={regionStore.regions}
-              usage={this.state.endpointUsage}
+              transfers={this.state.endpointUsage.transfers}
               loading={
                 endpointStore.connectionInfoLoading ||
                 endpointStore.loading ||
@@ -339,8 +340,8 @@ class EndpointDetailsPage extends React.Component<Props, State> {
           type="error"
           isOpen={this.state.showEndpointInUseModal}
           title="Endpoint is in use"
-          message="The endpoint can't be deleted because it is in use by replicas or migrations."
-          extraMessage="You must first delete the replica or migration which uses this endpoint."
+          message="The endpoint can't be deleted because it is in use by transfers or deployments."
+          extraMessage="You must first delete the transfer or deployment which uses this endpoint."
           onRequestClose={() => {
             this.handleCloseEndpointInUseModal();
           }}
@@ -408,4 +409,11 @@ class EndpointDetailsPage extends React.Component<Props, State> {
   }
 }
 
-export default EndpointDetailsPage;
+function EndpointDetailsPageWithNavigate() {
+  const navigate = useNavigate();
+  const { id } = useParams();
+
+  return <EndpointDetailsPage onNavigate={navigate} id={id!} />;
+}
+
+export default EndpointDetailsPageWithNavigate;

@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
-const merge = require("webpack-merge");
+const { merge } = require("webpack-merge");
+const webpack = require("webpack");
 const common = require("./webpack.common");
+const ReactRefreshWebpackPlugin = require("@pmmmwh/react-refresh-webpack-plugin");
 
 module.exports = merge(common, {
   mode: "development",
@@ -10,9 +12,13 @@ module.exports = merge(common, {
     hot: true,
     historyApiFallback: true,
     proxy: {
-      "/api": `http://localhost:${process.env.PORT || 3000}`,
-      "/proxy": `http://localhost:${process.env.PORT || 3000}`,
+      context: ["/api", "/proxy"],
+      target: `http://localhost:${process.env.PORT || 3000}`,
     },
     stats: "minimal",
   },
+  plugins: [
+    new webpack.HotModuleReplacementPlugin(),
+    new ReactRefreshWebpackPlugin({ overlay: false }),
+  ].filter(Boolean),
 });

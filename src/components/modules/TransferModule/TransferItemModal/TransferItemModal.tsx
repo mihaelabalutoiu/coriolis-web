@@ -19,8 +19,7 @@ import styled from "styled-components";
 import providerStore, {
   getFieldChangeOptions,
 } from "@src/stores/ProviderStore";
-import replicaStore from "@src/stores/ReplicaStore";
-import migrationStore from "@src/stores/MigrationStore";
+import transferStore from "@src/stores/TransferStore";
 import endpointStore from "@src/stores/EndpointStore";
 import { OptionsSchemaPlugin } from "@src/plugins";
 
@@ -36,12 +35,10 @@ import WizardOptions, {
   INSTANCE_OSMORPHING_MINION_POOL_MAPPINGS,
 } from "@src/components/modules/WizardModule/WizardOptions";
 import WizardStorage from "@src/components/modules/WizardModule/WizardStorage";
+import WizardScripts from "@src/components/modules/WizardModule/WizardScripts";
+import WizardExecuteOptions from "@src/components/modules/WizardModule/WizardExecuteOptions";
 
-import type {
-  UpdateData,
-  TransferItemDetails,
-  MigrationItemDetails,
-} from "@src/@types/MainItem";
+import type { UpdateData, ActionItemDetails } from "@src/@types/MainItem";
 import {
   Endpoint,
   EndpointUtils,
@@ -57,11 +54,10 @@ import {
   SecurityGroup,
 } from "@src/@types/Network";
 
-import { providerTypes, migrationFields } from "@src/constants";
+import { deploymentFields, providerTypes } from "@src/constants";
 import configLoader from "@src/utils/Config";
 import LoadingButton from "@src/components/ui/LoadingButton";
 import minionPoolStore from "@src/stores/MinionPoolStore";
-import WizardScripts from "@src/components/modules/WizardModule/WizardScripts";
 import networkStore from "@src/stores/NetworkStore";
 import { ThemeProps } from "@src/components/Theme";
 import ObjectUtils from "@src/utils/ObjectUtils";
@@ -105,11 +101,11 @@ const Buttons = styled.div<any>`
 type Width = "normal" | "wide";
 
 type Props = {
-  type?: "replica" | "migration";
+  type?: "transfer" | "deployment";
   isOpen: boolean;
   onRequestClose: () => void;
   onUpdateComplete: (redirectTo: string) => void;
-  replica: TransferItemDetails;
+  transfer: ActionItemDetails;
   destinationEndpoint: Endpoint;
   sourceEndpoint: Endpoint;
   instancesDetails: Instance[];
@@ -122,6 +118,7 @@ type State = {
   selectedPanel: string | null;
   destinationData: any;
   sourceData: any;
+  deployData: any;
   updateDisabled: boolean;
   updating: boolean;
   selectedNetworks: NetworkMap[];
@@ -140,6 +137,7 @@ class TransferItemModal extends React.Component<Props, State> {
     selectedPanel: "source_options",
     destinationData: {},
     sourceData: {},
+    deployData: {},
     updateDisabled: false,
     updating: false,
     selectedNetworks: [],
@@ -187,14 +185,14 @@ class TransferItemModal extends React.Component<Props, State> {
 
   getStorageMap(storageBackends: StorageBackend[]): StorageMap[] {
     const storageMap: StorageMap[] = [];
-    const currentStorage = this.props.replica.storage_mappings;
+    const currentStorage = this.props.transfer.storage_mappings;
     const buildStorageMap = (
       type: "backend" | "disk",
-      mapping: any
+      mapping: any,
     ): StorageMap => {
       const busTypeInfo = EndpointUtils.getBusTypeStorageId(
         storageBackends,
-        mapping.destination
+        mapping.destination,
       );
       const backend = storageBackends.find(b => b.name === busTypeInfo.id);
       const newStorageMap: StorageMap = {
@@ -229,7 +227,7 @@ class TransferItemModal extends React.Component<Props, State> {
       const existingMapping = storageMap.find(
         m =>
           m.type === mapping.type &&
-          m.source[fieldName] === String(mapping.source[fieldName])
+          m.source[fieldName] === String(mapping.source[fieldName]),
       );
       if (existingMapping) {
         existingMapping.target = mapping.target;
@@ -246,13 +244,13 @@ class TransferItemModal extends React.Component<Props, State> {
 
   getSelectedNetworks(): NetworkMap[] {
     const selectedNetworks: NetworkMap[] = [];
-    const networkMap: any = this.props.replica.network_map;
+    const networkMap: any = this.props.transfer.network_map;
 
     if (networkMap) {
       Object.keys(networkMap).forEach(sourceNetworkName => {
         // if the network mapping was updated, just use the new mapping instead of the old one
         const updatedMapping = this.state.selectedNetworks.find(
-          m => m.sourceNic.network_name === sourceNetworkName
+          m => m.sourceNic.network_name === sourceNetworkName,
         );
         if (updatedMapping) {
           selectedNetworks.push(updatedMapping);
@@ -263,17 +261,17 @@ class TransferItemModal extends React.Component<Props, State> {
         const destNetObj: any = networkMap[sourceNetworkName];
         const portKeyInfo = NetworkUtils.getPortKeyNetworkId(
           this.props.networks,
-          destNetObj
+          destNetObj,
         );
         const destNetId = String(
           typeof destNetObj === "string" || !destNetObj || !destNetObj.id
             ? portKeyInfo.id
-            : destNetObj.id
+            : destNetObj.id,
         );
 
         const network =
           this.props.networks.find(
-            n => n.name === destNetId || n.id === destNetId
+            n => n.name === destNetId || n.id === destNetId,
           ) || null;
         const mapping: NetworkMap = {
           sourceNic: {
@@ -288,7 +286,7 @@ class TransferItemModal extends React.Component<Props, State> {
           const destSecGroupsInfo = network?.security_groups || [];
           const secInfo = destNetObj.security_groups.map((s: SecurityGroup) => {
             const foundSecGroupInfo = destSecGroupsInfo.find((si: any) =>
-              si.id ? si.id === s : si === s
+              si.id ? si.id === s : si === s,
             );
             return foundSecGroupInfo || { id: s, name: s };
           });
@@ -305,7 +303,7 @@ class TransferItemModal extends React.Component<Props, State> {
     this.state.selectedNetworks.forEach(mapping => {
       if (
         !selectedNetworks.find(
-          m => m.sourceNic.network_name === mapping.sourceNic.network_name
+          m => m.sourceNic.network_name === mapping.sourceNic.network_name,
         )
       ) {
         selectedNetworks.push(mapping);
@@ -322,7 +320,7 @@ class TransferItemModal extends React.Component<Props, State> {
     const buildDefaultStorage = (defaultValue: string | null | undefined) => {
       const busTypeInfo = EndpointUtils.getBusTypeStorageId(
         endpointStore.storageBackends,
-        defaultValue || null
+        defaultValue || null,
       );
       const defaultStorage: { value: string | null; busType?: string | null } =
         {
@@ -334,14 +332,36 @@ class TransferItemModal extends React.Component<Props, State> {
       return defaultStorage;
     };
 
-    if (this.props.replica.storage_mappings?.default) {
-      return buildDefaultStorage(this.props.replica.storage_mappings.default);
+    if (this.props.transfer.storage_mappings?.default) {
+      return buildDefaultStorage(this.props.transfer.storage_mappings.default);
     }
 
     if (endpointStore.storageConfigDefault) {
       return buildDefaultStorage(endpointStore.storageConfigDefault);
     }
     return { value: null };
+  }
+
+  getDeployFieldValue(fieldName: string, defaultValue: any) {
+    const currentData = this.state.deployData;
+    if (fieldName === "clone_disks") {
+      if (currentData[fieldName] !== undefined) {
+        return currentData[fieldName];
+      }
+
+      return this.props.transfer.clone_disks !== undefined
+        ? this.props.transfer.clone_disks
+        : defaultValue;
+    }
+
+    if (fieldName === "skip_os_morphing") {
+      if (currentData[fieldName] !== undefined) {
+        return currentData[fieldName];
+      }
+      return this.props.transfer.skip_os_morphing !== undefined
+        ? this.props.transfer.skip_os_morphing
+        : defaultValue;
+    }
   }
 
   getFieldValue(opts: {
@@ -354,8 +374,8 @@ class TransferItemModal extends React.Component<Props, State> {
     const currentData =
       type === "source" ? this.state.sourceData : this.state.destinationData;
 
-    const replicaMinionMappings =
-      this.props.replica[INSTANCE_OSMORPHING_MINION_POOL_MAPPINGS];
+    const transferMinionMappings =
+      this.props.transfer[INSTANCE_OSMORPHING_MINION_POOL_MAPPINGS];
 
     if (parentFieldName) {
       if (
@@ -366,10 +386,10 @@ class TransferItemModal extends React.Component<Props, State> {
       }
       if (
         parentFieldName === INSTANCE_OSMORPHING_MINION_POOL_MAPPINGS &&
-        replicaMinionMappings &&
-        replicaMinionMappings[fieldName] !== undefined
+        transferMinionMappings &&
+        transferMinionMappings[fieldName] !== undefined
       ) {
-        return replicaMinionMappings[fieldName];
+        return transferMinionMappings[fieldName];
       }
     }
 
@@ -378,8 +398,8 @@ class TransferItemModal extends React.Component<Props, State> {
     }
 
     if (fieldName === "title") {
-      if (this.props.replica.notes) {
-        return this.props.replica.notes;
+      if (this.props.transfer.notes) {
+        return this.props.transfer.notes;
       }
       let title = this.props.instancesDetails?.[0]?.name;
       if (
@@ -393,22 +413,22 @@ class TransferItemModal extends React.Component<Props, State> {
 
     if (fieldName === "minion_pool_id") {
       return type === "source"
-        ? this.props.replica.origin_minion_pool_id
-        : this.props.replica.destination_minion_pool_id;
+        ? this.props.transfer.origin_minion_pool_id
+        : this.props.transfer.destination_minion_pool_id;
     }
 
-    const replicaData: any =
+    const transferData: any =
       type === "source"
-        ? this.props.replica.source_environment
-        : this.props.replica.destination_environment;
+        ? this.props.transfer.source_environment
+        : this.props.transfer.destination_environment;
 
     if (parentFieldName) {
-      if (replicaData[parentFieldName]?.[fieldName] !== undefined) {
-        return replicaData[parentFieldName][fieldName];
+      if (transferData[parentFieldName]?.[fieldName] !== undefined) {
+        return transferData[parentFieldName][fieldName];
       }
     }
-    if (replicaData[fieldName] !== undefined) {
-      return replicaData[fieldName];
+    if (transferData[fieldName] !== undefined) {
+      return transferData[fieldName];
     }
     const endpoint =
       type === "source"
@@ -419,16 +439,10 @@ class TransferItemModal extends React.Component<Props, State> {
     const osMapping = /^(windows|linux)/.exec(fieldName);
     if (osMapping) {
       const osData =
-        replicaData[`${plugin.migrationImageMapFieldName}/${osMapping[0]}`];
+        transferData[`${plugin.migrationImageMapFieldName}/${osMapping[0]}`];
       return osData;
     }
-    const anyData = this.props.replica as any;
-    if (migrationFields.find(f => f.name === fieldName) && anyData[fieldName]) {
-      return anyData[fieldName];
-    }
-    if (fieldName === "skip_os_morphing" && this.props.type === "migration") {
-      return migrationStore.getDefaultSkipOsMorphing(anyData);
-    }
+
     return defaultValue;
   }
 
@@ -464,7 +478,7 @@ class TransferItemModal extends React.Component<Props, State> {
   async loadOptions(
     endpoint: Endpoint,
     optionsType: "source" | "destination",
-    useCache: boolean
+    useCache: boolean,
   ) {
     try {
       await providerStore.loadOptionsSchema({
@@ -474,11 +488,9 @@ class TransferItemModal extends React.Component<Props, State> {
         useCache,
       });
     } catch (err) {
-      if (optionsType === "destination" || this.props.type === "migration") {
+      if (optionsType === "destination") {
         const destinationFailedMessage =
-          this.props.type === "replica"
-            ? "An error has occurred during the loading of the Replica's options for editing. There could be connection issues with the destination platform. Please retry the operation."
-            : "An error has occurred during loading of the source or destination platforms' environment options for editing of the Migration's parameters. You may still recreate the Migration with the same parameters as the original one by clicking \"Create\".";
+          "An error has occurred during the loading of the Transfer's options for editing. There could be connection issues with the destination platform. Please retry the operation.";
         this.setState({ destinationFailedMessage });
       }
       throw err;
@@ -505,8 +517,8 @@ class TransferItemModal extends React.Component<Props, State> {
         : this.props.destinationEndpoint;
     const env = ObjectUtils.clone(
       type === "source"
-        ? this.props.replica.source_environment
-        : this.props.replica.destination_environment
+        ? this.props.transfer.source_environment
+        : this.props.transfer.destination_environment,
     );
     const stateEnv =
       type === "source" ? this.state.sourceData : this.state.destinationData;
@@ -555,7 +567,7 @@ class TransferItemModal extends React.Component<Props, State> {
 
   isUpdateDisabled() {
     const isDestFailed =
-      this.props.type === "replica" && this.state.destinationFailedMessage;
+      this.props.type === "transfer" && this.state.destinationFailedMessage;
     return this.state.updateDisabled || isDestFailed;
   }
 
@@ -593,8 +605,8 @@ class TransferItemModal extends React.Component<Props, State> {
   validateOptions(type: "source" | "destination") {
     const env = ObjectUtils.clone(
       type === "source"
-        ? this.props.replica.source_environment
-        : this.props.replica.destination_environment
+        ? this.props.transfer.source_environment
+        : this.props.transfer.destination_environment,
     );
 
     const data =
@@ -605,7 +617,7 @@ class TransferItemModal extends React.Component<Props, State> {
         : providerStore.destinationSchema;
     const invalidFields = findInvalidFields(
       ObjectUtils.mergeDeep(env, data),
-      schema
+      schema,
     );
 
     this.setState({ updateDisabled: invalidFields.length > 0 });
@@ -632,13 +644,13 @@ class TransferItemModal extends React.Component<Props, State> {
         ? { ...this.state.sourceData }
         : { ...this.state.destinationData };
 
-    const replicaData: any =
+    const transferData: any =
       type === "source"
-        ? this.props.replica.source_environment
-        : this.props.replica.destination_environment;
+        ? this.props.transfer.source_environment
+        : this.props.transfer.destination_environment;
     if (field.type === "array") {
       const currentValues: string[] = data[field.name] || [];
-      const oldValues: string[] = replicaData[field.name] || [];
+      const oldValues: string[] = transferData[field.name] || [];
       let values: string[] = currentValues;
       if (!currentValues.length) {
         values = [...oldValues];
@@ -658,7 +670,7 @@ class TransferItemModal extends React.Component<Props, State> {
       // existing fields from Object options from the previous Migration/Replica,
       // we always re-merge all the values on an object field update.
       data[parentFieldName] =
-        data[parentFieldName] || replicaData[parentFieldName] || {};
+        data[parentFieldName] || transferData[parentFieldName] || {};
       data[parentFieldName][field.name] = value;
     } else {
       data[field.name] = value;
@@ -667,7 +679,7 @@ class TransferItemModal extends React.Component<Props, State> {
     if (field.subFields) {
       field.subFields.forEach(subField => {
         const subFieldKeys = Object.keys(data).filter(
-          k => k.indexOf(subField.name) > -1
+          k => k.indexOf(subField.name) > -1,
         );
         subFieldKeys.forEach(k => {
           delete data[k];
@@ -692,12 +704,19 @@ class TransferItemModal extends React.Component<Props, State> {
     }
   }
 
+  handleDeployFieldChange(field: Field, value: any) {
+    const data = this.state.deployData;
+    data[field.name] = value;
+    this.setState({ deployData: { ...this.state.deployData, ...data } });
+  }
+
   async handleUpdateClick() {
     this.setState({ updating: true });
 
     const updateData: UpdateData = {
       source: this.state.sourceData,
       destination: this.state.destinationData,
+      deploy: this.state.deployData,
       network:
         this.state.selectedNetworks.length > 0
           ? this.getSelectedNetworks()
@@ -706,57 +725,27 @@ class TransferItemModal extends React.Component<Props, State> {
       uploadedScripts: this.state.uploadedScripts,
       removedScripts: this.state.removedScripts,
     };
-    if (this.props.type === "replica") {
-      try {
-        await replicaStore.update({
-          replica: this.props.replica as any,
-          sourceEndpoint: this.props.sourceEndpoint,
-          destinationEndpoint: this.props.destinationEndpoint,
-          updateData,
-          defaultStorage: this.getDefaultStorage(),
-          storageConfigDefault: endpointStore.storageConfigDefault,
-        });
-        this.props.onRequestClose();
-        this.props.onUpdateComplete(
-          `/replicas/${this.props.replica.id}/executions`
-        );
-      } catch (err) {
-        this.setState({ updating: false });
-      }
-    } else {
-      try {
-        const defaultStorage = EndpointUtils.getBusTypeStorageId(
-          endpointStore.storageBackends,
-          this.props.replica.storage_mappings?.default || null
-        );
-        const replicaDefaultStorage: {
-          value: string | null;
-          busType?: string | null;
-        } = {
-          value: defaultStorage.id,
-          busType: defaultStorage.busType,
-        };
-        const migration: MigrationItemDetails = await migrationStore.recreate({
-          migration: this.props.replica as any,
-          sourceEndpoint: this.props.sourceEndpoint,
-          destEndpoint: this.props.destinationEndpoint,
-          updateData,
-          defaultStorage: replicaDefaultStorage,
-          updatedDefaultStorage: this.state.defaultStorage,
-          replicationCount: this.props.replica.replication_count,
-        });
-        migrationStore.clearDetails();
-        this.props.onRequestClose();
-        this.props.onUpdateComplete(`/migrations/${migration.id}/tasks`);
-      } catch (err) {
-        this.setState({ updating: false });
-      }
+    try {
+      await transferStore.update({
+        transfer: this.props.transfer as any,
+        sourceEndpoint: this.props.sourceEndpoint,
+        destinationEndpoint: this.props.destinationEndpoint,
+        updateData,
+        defaultStorage: this.getDefaultStorage(),
+        storageConfigDefault: endpointStore.storageConfigDefault,
+      });
+      this.props.onRequestClose();
+      this.props.onUpdateComplete(
+        `/transfers/${this.props.transfer.id}/executions`,
+      );
+    } catch (err) {
+      this.setState({ updating: false });
     }
   }
 
   handleNetworkChange(changeObject: WizardNetworksChangeObject) {
     const networkMap = this.state.selectedNetworks.filter(
-      n => n.sourceNic.network_name !== changeObject.nic.network_name
+      n => n.sourceNic.network_name !== changeObject.nic.network_name,
     );
     this.setState({
       selectedNetworks: [
@@ -773,11 +762,11 @@ class TransferItemModal extends React.Component<Props, State> {
 
   handleCancelScript(
     global: "windows" | "linux" | null,
-    instanceName: string | null
+    instanceName: string | null,
   ) {
     this.setState(prevState => ({
       uploadedScripts: prevState.uploadedScripts.filter(s =>
-        global ? s.global !== global : s.instanceId !== instanceName
+        global ? s.global !== global : s.instanceId !== instanceName,
       ),
     }));
   }
@@ -801,7 +790,7 @@ class TransferItemModal extends React.Component<Props, State> {
       const storageMap = prevState.storageMap.filter(
         n =>
           n.type !== mapping.type ||
-          n.source[diskFieldName] !== mapping.source[diskFieldName]
+          n.source[diskFieldName] !== mapping.source[diskFieldName],
       );
       storageMap.push(mapping);
 
@@ -830,7 +819,7 @@ class TransferItemModal extends React.Component<Props, State> {
     }
     if (loading) {
       return this.renderLoading(
-        `Loading ${type === "source" ? "source" : "target"} options ...`
+        `Loading ${type === "source" ? "source" : "target"} options ...`,
       );
     }
     const optionsLoading =
@@ -842,7 +831,7 @@ class TransferItemModal extends React.Component<Props, State> {
         ? providerStore.sourceSchema
         : providerStore.destinationSchema;
     const fields =
-      this.props.type === "replica" ? schema.filter(f => !f.readOnly) : schema;
+      this.props.type === "transfer" ? schema.filter(f => !f.readOnly) : schema;
     const extraOptionsConfig = configLoader.config.extraOptionsApiCalls.find(
       o => {
         const provider =
@@ -850,7 +839,7 @@ class TransferItemModal extends React.Component<Props, State> {
             ? this.props.sourceEndpoint.type
             : this.props.destinationEndpoint.type;
         return o.name === provider && o.types.find(t => t === type);
-      }
+      },
     );
     let optionsLoadingSkipFields: string[] = [];
     if (extraOptionsConfig) {
@@ -865,12 +854,12 @@ class TransferItemModal extends React.Component<Props, State> {
       dictionaryKey = `${endpoint.type}-${type}`;
     }
     const minionPools = minionPoolStore.minionPools.filter(
-      m => m.platform === type && m.endpoint_id === endpoint.id
+      m => m.platform === type && m.endpoint_id === endpoint.id,
     );
     return (
       <WizardOptions
         minionPools={minionPools}
-        wizardType={`${this.props.type || "replica"}-${type}-options-edit`}
+        wizardType={`${this.props.type || "transfer"}-${type}-options-edit`}
         getFieldValue={(f, d, pf) =>
           this.getFieldValue({
             type,
@@ -913,13 +902,7 @@ class TransferItemModal extends React.Component<Props, State> {
         layout="modal"
         isSource={type === "source"}
         optionsLoading={optionsLoading}
-        optionsLoadingSkipFields={[
-          ...optionsLoadingSkipFields,
-          "description",
-          "execute_now",
-          "execute_now_options",
-          ...migrationFields.map(f => f.name),
-        ]}
+        optionsLoadingSkipFields={[...optionsLoadingSkipFields, "description"]}
         dictionaryKey={dictionaryKey}
         executeNowOptionsDisabled={
           !providerStore.hasExecuteNowOptions(this.props.sourceEndpoint.type)
@@ -989,11 +972,26 @@ class TransferItemModal extends React.Component<Props, State> {
         }}
         uploadedScripts={this.state.uploadedScripts}
         removedScripts={this.state.removedScripts}
-        userScriptData={this.props.replica?.user_scripts}
+        userScriptData={this.props.transfer?.user_scripts}
         scrollableRef={(r: HTMLElement) => {
           this.scrollableRef = r;
         }}
         style={{ padding: "32px 32px 0 32px", width: "calc(100% - 64px)" }}
+      />
+    );
+  }
+
+  renderDeployOptions() {
+    return (
+      <WizardExecuteOptions
+        options={[...deploymentFields]}
+        wizardType={"edit-deploy"}
+        layout={"modal"}
+        onChange={(f, v) => {
+          this.handleDeployFieldChange(f, v);
+        }}
+        data={this.state.deployData}
+        getFieldValue={(f, d) => this.getDeployFieldValue(f, d)}
       />
     );
   }
@@ -1016,6 +1014,9 @@ class TransferItemModal extends React.Component<Props, State> {
       case "storage_mapping":
         content = this.renderStorageMapping();
         break;
+      case "deploy_options":
+        content = this.renderDeployOptions();
+        break;
       default:
         content = null;
     }
@@ -1030,7 +1031,7 @@ class TransferItemModal extends React.Component<Props, State> {
             <LoadingButton large>Loading ...</LoadingButton>
           ) : this.state.updating ? (
             <LoadingButton large>
-              {this.props.type === "replica" ? "Updating" : "Creating"} ...
+              {this.props.type === "transfer" ? "Updating" : "Creating"} ...
             </LoadingButton>
           ) : (
             <Button
@@ -1040,7 +1041,7 @@ class TransferItemModal extends React.Component<Props, State> {
               }}
               disabled={this.isUpdateDisabled()}
             >
-              {this.props.type === "replica" ? "Update" : "Create"}
+              {this.props.type === "transfer" ? "Update" : "Create"}
             </Button>
           )}
         </Buttons>
@@ -1095,12 +1096,15 @@ class TransferItemModal extends React.Component<Props, State> {
       });
     }
 
+    navigationItems.push({
+      value: "deploy_options",
+      label: "Deploy Options",
+    });
+
     return (
       <Modal
         isOpen={this.props.isOpen}
-        title={`${
-          this.props.type === "replica" ? "Edit Replica" : "Recreate Migration"
-        }`}
+        title="Edit Transfer"
         onRequestClose={this.props.onRequestClose}
         contentWidth={this.state.width === "normal" ? "800px" : "1074px"}
         onScrollableRef={() => this.scrollableRef}
@@ -1117,11 +1121,7 @@ class TransferItemModal extends React.Component<Props, State> {
           onReloadClick={() => {
             this.handleReload();
           }}
-          reloadLabel={
-            this.props.type === "replica"
-              ? "Reload All Replica Options"
-              : "Reload All Migration Options"
-          }
+          reloadLabel="Reload All Options"
         />
       </Modal>
     );

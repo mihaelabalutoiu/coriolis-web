@@ -16,6 +16,7 @@ import express from "express";
 import bodyParser from "body-parser";
 import metalHubProxy from "./metalHubProxy";
 import azureProxy from "./azureProxy";
+import disclaimerProxy from "./disclaimerProxy";
 
 const router = express.Router();
 
@@ -23,5 +24,6 @@ router.use(bodyParser.json());
 
 azureProxy(router);
 metalHubProxy(router);
+disclaimerProxy(router);
 
 export default router;

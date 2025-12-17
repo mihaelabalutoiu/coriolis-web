@@ -26,7 +26,7 @@ jest.mock("@src/utils/Config", () => ({
   },
 }));
 jest.mock("react-transition-group", () => ({
-  CSSTransitionGroup: (props: any) => <div>{props.children}</div>,
+  CSSTransition: (props: any) => <div>{props.children}</div>,
 }));
 
 describe("WizardOptions", () => {
@@ -45,6 +45,6 @@ describe("WizardOptions", () => {
 
   it("renders without crashing", () => {
     const { getByText } = render(<WizardOptions {...defaultProps} />);
-    expect(getByText("Execute Now")).toBeTruthy();
+    expect(getByText("Target Minion Pool")).toBeTruthy();
   });
 });

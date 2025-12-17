@@ -15,6 +15,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import { observer } from "mobx-react";
 import React from "react";
 import styled from "styled-components";
+import { useNavigate } from "react-router";
 
 import DashboardContent from "@src/components/modules/DashboardModule/DashboardContent";
 import Navigation from "@src/components/modules/NavigationModule/Navigation";
@@ -22,21 +23,25 @@ import MainTemplate from "@src/components/modules/TemplateModule/MainTemplate";
 import PageHeader from "@src/components/smart/PageHeader";
 import endpointStore from "@src/stores/EndpointStore";
 import licenceStore from "@src/stores/LicenceStore";
-import migrationStore from "@src/stores/MigrationStore";
+import deploymentStore from "@src/stores/DeploymentStore";
 import notificationStore from "@src/stores/NotificationStore";
 import projectStore from "@src/stores/ProjectStore";
-import replicaStore from "@src/stores/ReplicaStore";
+import transferStore from "@src/stores/TransferStore";
 import userStore from "@src/stores/UserStore";
 import configLoader from "@src/utils/Config";
 import Utils from "@src/utils/ObjectUtils";
 
 const Wrapper = styled.div<any>``;
 
+type Props = {
+  onNavigate: (path: string) => void;
+};
+
 type State = {
   modalIsOpen: boolean;
 };
 @observer
-class ProjectsPage extends React.Component<{ history: any }, State> {
+class ProjectsPage extends React.Component<Props, State> {
   state = {
     modalIsOpen: false,
   };
@@ -99,8 +104,8 @@ class ProjectsPage extends React.Component<{ history: any }, State> {
     this.loadAdminData(showLoading);
 
     await Promise.all([
-      replicaStore.getReplicas({ skipLog: true, showLoading }),
-      migrationStore.getMigrations({ skipLog: true, showLoading }),
+      transferStore.getTransfers({ skipLog: true, showLoading }),
+      deploymentStore.getDeployments({ skipLog: true, showLoading }),
       endpointStore.getEndpoints({ skipLog: true, showLoading }),
       projectStore.getProjects({ skipLog: true, showLoading }),
     ]);
@@ -112,7 +117,7 @@ class ProjectsPage extends React.Component<{ history: any }, State> {
       {
         timeoutMs: 30000,
         intervalMs: 100,
-      }
+      },
     );
     if (userStore.loggedUser?.isAdmin) {
       userStore.getAllUsers({ skipLog: true, showLoading });
@@ -128,27 +133,27 @@ class ProjectsPage extends React.Component<{ history: any }, State> {
           listNoMargin
           listComponent={
             <DashboardContent
-              replicas={replicaStore.replicas}
-              migrations={migrationStore.migrations}
+              transfers={transferStore.transfers}
+              deployments={deploymentStore.deployments}
               endpoints={endpointStore.endpoints}
               users={userStore.users}
               projects={projectStore.projects}
               licence={licenceStore.licenceInfo}
               licenceServerStatus={licenceStore.licenceServerStatus}
               isAdmin={Boolean(
-                userStore.loggedUser && userStore.loggedUser.isAdmin
+                userStore.loggedUser && userStore.loggedUser.isAdmin,
               )}
               notificationItems={notificationStore.notificationItems}
               notificationItemsLoading={notificationStore.loading}
               endpointsLoading={endpointStore.loading}
-              migrationsLoading={migrationStore.loading}
+              deploymentsLoading={deploymentStore.loading}
               projectsLoading={projectStore.projects.length === 0}
               usersLoading={userStore.users.length === 0}
               licenceLoading={licenceStore.loadingLicenceInfo}
               licenceError={licenceStore.licenceInfoError}
-              replicasLoading={replicaStore.loading}
-              onNewReplicaClick={() => {
-                this.props.history.push("/wizard/replica");
+              transfersLoading={transferStore.loading}
+              onNewTransferClick={() => {
+                this.props.onNavigate("/wizard/migration");
               }}
               onNewEndpointClick={() => {
                 this.handleNewEndpointClick();
@@ -181,4 +186,10 @@ class ProjectsPage extends React.Component<{ history: any }, State> {
   }
 }
 
-export default ProjectsPage;
+function ProjectsPageWithNavigate() {
+  const navigate = useNavigate();
+
+  return <ProjectsPage onNavigate={navigate} />;
+}
+
+export default ProjectsPageWithNavigate;

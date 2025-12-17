@@ -15,6 +15,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import React from "react";
 import styled from "styled-components";
 import { observer } from "mobx-react";
+import { useNavigate } from "react-router";
 
 import MainTemplate from "@src/components/modules/TemplateModule/MainTemplate";
 import Navigation from "@src/components/modules/NavigationModule/Navigation";
@@ -30,8 +31,8 @@ import type { Endpoint as EndpointType } from "@src/@types/Endpoint";
 import projectStore from "@src/stores/ProjectStore";
 import userStore from "@src/stores/UserStore";
 import endpointStore from "@src/stores/EndpointStore";
-import migrationStore from "@src/stores/MigrationStore";
-import replicaStore from "@src/stores/ReplicaStore";
+import deploymentStore from "@src/stores/DeploymentStore";
+import transferStore from "@src/stores/TransferStore";
 import providerStore from "@src/stores/ProviderStore";
 import EndpointDuplicateOptions from "@src/components/modules/EndpointModule/EndpointDuplicateOptions";
 
@@ -56,8 +57,13 @@ type State = {
   uploadedEndpoint: EndpointType | null;
   multiValidating: boolean;
 };
+
+type Props = {
+  onNavigate: (path: string) => void;
+};
+
 @observer
-class EndpointsPage extends React.Component<{ history: any }, State> {
+class EndpointsPage extends React.Component<Props, State> {
   state: State = {
     showChooseProviderModal: false,
     showEndpointModal: false,
@@ -91,30 +97,35 @@ class EndpointsPage extends React.Component<{ history: any }, State> {
   }
 
   getFilterItems() {
-    const providers = endpointStore.endpoints.reduce((p, endpoint) => {
-      if (!p.find(p2 => p2.value === endpoint.type)) {
-        p.push({
-          label:
-            configLoader.config.providerNames[endpoint.type] || endpoint.type,
-          value: endpoint.type,
-        });
-      }
-      return p;
-    }, [] as { label: string; value: ProviderTypes }[]);
+    const providers = endpointStore.endpoints.reduce(
+      (p, endpoint) => {
+        if (!p.find(p2 => p2.value === endpoint.type)) {
+          p.push({
+            label:
+              configLoader.config.providerNames[endpoint.type] || endpoint.type,
+            value: endpoint.type,
+          });
+        }
+        return p;
+      },
+      [] as { label: string; value: ProviderTypes }[],
+    );
     providers.sort((a, b) => a.label.localeCompare(b.label));
     return [{ label: "All", value: "all" }, ...providers];
   }
 
   getEndpointUsage(endpointId: string) {
-    const replicasCount = replicaStore.replicas.filter(
+    const replicasCount = transferStore.transfers.filter(
       r =>
-        r.origin_endpoint_id === endpointId ||
-        r.destination_endpoint_id === endpointId
+        (r.origin_endpoint_id === endpointId ||
+          r.destination_endpoint_id === endpointId) &&
+        r.scenario === "replica",
     ).length;
-    const migrationsCount = migrationStore.migrations.filter(
+    const migrationsCount = transferStore.transfers.filter(
       r =>
-        r.origin_endpoint_id === endpointId ||
-        r.destination_endpoint_id === endpointId
+        (r.origin_endpoint_id === endpointId ||
+          r.destination_endpoint_id === endpointId) &&
+        r.scenario === "live_migration",
     ).length;
 
     return { migrationsCount, replicasCount };
@@ -122,19 +133,19 @@ class EndpointsPage extends React.Component<{ history: any }, State> {
 
   handleProjectChange() {
     endpointStore.getEndpoints({ showLoading: true });
-    migrationStore.getMigrations();
-    replicaStore.getReplicas();
+    deploymentStore.getDeployments();
+    transferStore.getTransfers();
   }
 
   handleReloadButtonClick() {
     projectStore.getProjects();
     endpointStore.getEndpoints({ showLoading: true });
-    migrationStore.getMigrations();
-    replicaStore.getReplicas();
+    deploymentStore.getDeployments();
+    transferStore.getTransfers();
   }
 
   handleItemClick(item: EndpointType) {
-    this.props.history.push(`/endpoints/${item.id}`);
+    this.props.onNavigate(`/endpoints/${item.id}`);
   }
 
   async duplicate(projectId: string) {
@@ -144,7 +155,7 @@ class EndpointsPage extends React.Component<{ history: any }, State> {
       projectId !==
       (userStore.loggedUser ? userStore.loggedUser.project.id : "");
     const endpoints = endpointStore.endpoints.filter(e =>
-      this.state.selectedEndpoints.find(se => se.id === e.id)
+      this.state.selectedEndpoints.find(se => se.id === e.id),
     );
 
     await endpointStore.duplicate({
@@ -254,8 +265,8 @@ class EndpointsPage extends React.Component<{ history: any }, State> {
 
     await Promise.all([
       endpointStore.getEndpoints({ showLoading, skipLog: true }),
-      migrationStore.getMigrations({ skipLog: true }),
-      replicaStore.getReplicas({ skipLog: true }),
+      deploymentStore.getDeployments({ skipLog: true }),
+      transferStore.getTransfers({ skipLog: true }),
     ]);
     this.pollTimeout = window.setTimeout(() => {
       this.pollData();
@@ -265,7 +276,7 @@ class EndpointsPage extends React.Component<{ history: any }, State> {
   itemFilterFunction(
     item: any,
     filterItem?: string | null,
-    filterText?: string
+    filterText?: string,
   ) {
     const endpoint: EndpointType = item;
     const usableFilterText = filterText || "";
@@ -333,7 +344,6 @@ class EndpointsPage extends React.Component<{ history: any }, State> {
               itemFilterFunction={(...args) => this.itemFilterFunction(...args)}
               renderItemComponent={options => (
                 <EndpointListItem
-                  // eslint-disable-next-line react/jsx-props-no-spreading
                   {...options}
                   getUsage={endpoint => this.getEndpointUsage(endpoint.id)}
                 />
@@ -345,6 +355,8 @@ class EndpointsPage extends React.Component<{ history: any }, State> {
               onEmptyListButtonClick={() => {
                 this.handleEmptyListButtonClick();
               }}
+              itemsPerPageOptions={[10, 25, 50]}
+              initialItemsPerPage={10}
             />
           }
           headerComponent={
@@ -461,4 +473,10 @@ class EndpointsPage extends React.Component<{ history: any }, State> {
   }
 }
 
-export default EndpointsPage;
+function EndpointsPageWithNavigate() {
+  const navigate = useNavigate();
+
+  return <EndpointsPage onNavigate={navigate} />;
+}
+
+export default EndpointsPageWithNavigate;

@@ -28,12 +28,12 @@ const getModJsonProviders = (jsonPath: string) => {
 const getOptimalLogoHeightKey = (
   availableHeightKeys: string[],
   requestedHeight: number,
-  style?: string | null
+  style?: string | null,
 ): string => {
   let heightKeys = availableHeightKeys;
   if (style) {
-    const styledKeys = heightKeys.filter((k) =>
-      style ? k.indexOf(style) > -1 : false
+    const styledKeys = heightKeys.filter(k =>
+      style ? k.indexOf(style) > -1 : false,
     );
     if (styledKeys.length) {
       heightKeys = styledKeys;
@@ -54,7 +54,7 @@ const getOptimalLogoHeightKey = (
 };
 
 export default (router: express.Router) => {
-  router.get("/logos/:provider/:size/:style?", (req, res) => {
+  router.get("/logos/:provider/:size{/:style}", (req, res) => {
     const SIZES = [32, 42, 64, 128];
     const STYLES = ["white", "disabled"];
     const { provider, style } = req.params;
@@ -92,7 +92,7 @@ export default (router: express.Router) => {
       const providerLogosJson = providerJson.logos;
       if (!providerLogosJson) {
         console.log(
-          `No logos specified in MOD_JSON file for '${provider}' provider`
+          `No logos specified in MOD_JSON file for '${provider}' provider`,
         );
         res.sendFile(logoPath);
         return;
@@ -100,7 +100,7 @@ export default (router: express.Router) => {
       const providerLogosKeys = Object.keys(providerLogosJson);
       if (!providerLogosKeys.length) {
         console.log(
-          `No logo heights specified in MOD_JSON file for '${provider}' provider`
+          `No logo heights specified in MOD_JSON file for '${provider}' provider`,
         );
         res.sendFile(logoPath);
         return;
@@ -108,12 +108,12 @@ export default (router: express.Router) => {
       const optimalHeightKey = getOptimalLogoHeightKey(
         providerLogosKeys,
         size,
-        style
+        style,
       );
       const modLogoPath = providerLogosJson[optimalHeightKey].path;
       if (!modLogoPath) {
         console.log(
-          `No logo path specified in MOD_JSON file for '${provider}' provider`
+          `No logo path specified in MOD_JSON file for '${provider}' provider`,
         );
         res.sendFile(logoPath);
         return;

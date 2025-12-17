@@ -62,8 +62,6 @@ class UserSource {
       },
     };
 
-    Api.setDefaultHeader("X-Auth-Token", null);
-
     const response = await Api.send({
       url: `${configLoader.config.servicesUrls.keystone}/auth/tokens`,
       method: "POST",
@@ -73,8 +71,8 @@ class UserSource {
       ? response.headers["X-Subject-Token"] ||
         response.headers["x-subject-token"]
       : "";
-    Api.setDefaultHeader("X-Auth-Token", token);
-    cookie.set("unscopedToken", token, { expires: 30 });
+    Api.setDefaultHeader("X-Auth-Token", token ?? null);
+    cookie.set("unscopedToken", token ?? "", { expires: 30 });
     return response.data;
   }
 
@@ -179,7 +177,7 @@ class UserSource {
 
   async getUserInfo(userId: string): Promise<User> {
     const response = await Api.get(
-      `${configLoader.config.servicesUrls.keystone}/users/${userId}`
+      `${configLoader.config.servicesUrls.keystone}/users/${userId}`,
     );
     return response.data.user;
   }
@@ -201,7 +199,7 @@ class UserSource {
   async update(
     userId: string,
     user: Partial<User>,
-    oldUser: User | null
+    oldUser: User | null,
   ): Promise<User> {
     const data: any = { user: {} };
     const oldData: any = oldUser || {};
@@ -246,7 +244,7 @@ class UserSource {
 
       await this.assignUserToProject(
         updatedUser.id,
-        updatedUser.project_id || "undefined"
+        updatedUser.project_id || "undefined",
       );
       return updatedUser;
     }
@@ -286,7 +284,7 @@ class UserSource {
     if (addedUser.project_id) {
       await this.assignUserToProject(
         addedUser.id,
-        addedUser.project_id || "undefined"
+        addedUser.project_id || "undefined",
       );
       return addedUser;
     }
@@ -308,7 +306,7 @@ class UserSource {
   async assignUserToProjectWithRole(
     userId: string,
     projectId: string,
-    roleId: string
+    roleId: string,
   ): Promise<void> {
     await Api.send({
       url: `${configLoader.config.servicesUrls.keystone}/projects/${projectId}/users/${userId}/roles/${roleId}`,
@@ -318,7 +316,7 @@ class UserSource {
 
   async getMemberRoleId(): Promise<string> {
     const roles: { id: string; name: string }[] = await this.getRoles();
-    const role = roles.find(r => r.name === "_member_");
+    const role = roles.find(r => r.name === "member");
     const roleId = role ? role.id : "";
     return roleId;
   }
@@ -326,7 +324,7 @@ class UserSource {
   async getAdminRoleId(): Promise<string> {
     const roles: { id: string; name: string }[] = await this.getRoles();
     const role = roles.find(
-      r => r.name.toLowerCase() === configLoader.config.adminRoleName
+      r => r.name.toLowerCase() === configLoader.config.adminRoleName,
     );
     const roleId = role ? role.id : "";
     return roleId;
@@ -334,28 +332,34 @@ class UserSource {
 
   async getRoles(): Promise<Role[]> {
     const response = await Api.get(
-      `${configLoader.config.servicesUrls.keystone}/roles`
+      `${configLoader.config.servicesUrls.keystone}/roles`,
     );
     const roles: Role[] = response.data.roles;
-    roles.sort((r1, r2) => r1.name.localeCompare(r2.name));
-    return roles;
+    const hiddenRoles = configLoader.config.hiddenUserRoles || [];
+    const filteredRoles = roles.filter(
+      role => !hiddenRoles.includes(role.name),
+    );
+    filteredRoles.sort((r1, r2) => r1.name.localeCompare(r2.name));
+    return filteredRoles;
   }
 
   async getProjects(userId: string): Promise<Project[]> {
     const response = await Api.get(
-      `${configLoader.config.servicesUrls.keystone}/role_assignments?include_names`
+      `${configLoader.config.servicesUrls.keystone}/role_assignments?include_names`,
     );
     const assignments: RoleAssignment[] = response.data.role_assignments;
+    const hiddenRoles = configLoader.config.hiddenUserRoles || [];
     const projects: Project[] = assignments
       .filter(a => a.user.id === userId)
+      .filter(a => !hiddenRoles.includes(a.role.name))
       .filter(
         (a, i, arr) =>
           arr.findIndex(
             e =>
               e.scope.project &&
               a.scope.project &&
-              e.scope.project.id === a.scope.project.id
-          ) === i
+              e.scope.project.id === a.scope.project.id,
+          ) === i,
       )
       .map(a => a.scope.project)
       .filter(utils.notEmpty);
@@ -378,7 +382,7 @@ class UserSource {
             a &&
             a.role &&
             a.role.name &&
-            a.role.name.toLowerCase() === configLoader.config.adminRoleName
+            a.role.name.toLowerCase() === configLoader.config.adminRoleName,
         ).length > 0
     );
   }

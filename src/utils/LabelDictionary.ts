@@ -69,7 +69,7 @@ const dictionary = {
   storage_endpoint: "Storage Endpoint Suffix",
   preserve_nic_ips: "Preserve NIC IPs",
   openstack_use_current_user:
-    "Use Current User/Project/Domain for Authentification",
+    "Use Current User/Project/Domain for Authentication",
   windows_os_image: "Windows OS",
   linux_os_image: "Linux OS",
   skip_os_morphing: {
@@ -79,13 +79,23 @@ const dictionary = {
     (e.g: migrating between two KVM-based OpenStacks from different vendors)`,
   },
   force: {
-    description: `Whether or not Coriolis should forcibly attempt the Replica Deployment process despite the Replica not having any successful Executions.
-    This is only recommended if it is known that the Replica disks were successfully synced but some latter cleanup steps failed (e.g: deleting source-side temporary resources).
-    This will not help if the Replica disks were never successfully synced.`,
+    description: `Whether or not Coriolis should forcibly attempt the Deployment process despite the Transfer not having any successful Executions.
+    This is only recommended if it is known that the Transfer disks were successfully synced but some latter cleanup steps failed (e.g: deleting source-side temporary resources).
+    This will not help if the Transfer disks were never successfully synced.`,
   },
   clone_disks: {
-    description: `Whether or not Coriolis should clone the Replica disks on the destination platforms before optionally performing the OSMorphing process and booting the final VM.
-    Skipping disk cloning leads to a shorter deployment time, but means that the Replica disks will be allocated to the new VM, and thus the next Replica Execution will have to sync the disks from scratch.`,
+    description: `Whether or not Coriolis should clone the Transfer disks on the destination platforms before optionally performing the OSMorphing process and booting the final VM.
+    Skipping disk cloning leads to a shorter deployment time, but means that the Transfer disks will be allocated to the new VM, and thus the next Transfer Execution will have to sync the disks from scratch.`,
+  },
+  shutdown_instances: {
+    label: "Shutdown Instance(s)",
+    description:
+      "This option can be used before completing the Deployment on the target cloud. After the source instance(s) shutdown, a last snapshot will be executed, in order to transfer the last bits of data to the target cloud, and the source instance(s) will be left stopped.",
+  },
+  auto_deploy: {
+    label: "Auto Deploy",
+    description:
+      "When enabled, the transfer will automatically deploy the instances on the destination cloud after the transfer is complete.",
   },
 };
 
@@ -115,13 +125,13 @@ class LabelDictionary {
    */
   static get(
     fieldName: string | null | undefined,
-    dictionaryKey?: string
+    dictionaryKey?: string,
   ): string {
     if (!fieldName) {
       return "";
     }
     const cachItem = cache.find(
-      i => i.key === dictionaryKey && i.name === fieldName
+      i => i.key === dictionaryKey && i.name === fieldName,
     );
     if (cachItem && cachItem.label) {
       return cachItem.label;
@@ -151,7 +161,7 @@ class LabelDictionary {
 
   static getDescription(fieldName: string, dictionaryKey?: string): string {
     const cachItem = cache.find(
-      i => i.key === dictionaryKey && i.name === fieldName
+      i => i.key === dictionaryKey && i.name === fieldName,
     );
     if (cachItem && cachItem.description) {
       return cachItem.description;

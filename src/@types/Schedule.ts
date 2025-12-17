@@ -28,9 +28,10 @@ export type Schedule = {
   schedule?: ScheduleInfo;
   expiration_date?: Date;
   shutdown_instances?: boolean;
+  auto_deploy?: boolean;
 };
 
 export type ScheduleBulkItem = {
-  replicaId: string;
+  transferId: string;
   schedules: Schedule[];
 };

@@ -36,7 +36,7 @@ export const getFieldChangeOptions = (config: {
 }) => {
   const { providerName, schema, data, field, type, parentFieldName } = config;
   const providerWithEnvOptions = configLoader.config.extraOptionsApiCalls.find(
-    p => p.name === providerName && p.types.find(t => t === type)
+    p => p.name === providerName && p.types.find(t => t === type),
   );
   const fieldName = parentFieldName || field?.name || "";
   if (!providerName || !providerWithEnvOptions) {
@@ -143,8 +143,6 @@ class ProviderStore {
 
   @observable sourceSchemaLoading = false;
 
-  lastDestinationSchemaType: "replica" | "migration" = "replica";
-
   @computed
   get providerNames(): ProviderTypes[] {
     if (!this.providers) {
@@ -183,7 +181,7 @@ class ProviderStore {
   loadingForProvider: ProviderTypes | null = null;
 
   @action async getConnectionInfoSchema(
-    providerName: ProviderTypes
+    providerName: ProviderTypes,
   ): Promise<void> {
     if (
       this.connectionSchemaLoading &&
@@ -196,9 +194,8 @@ class ProviderStore {
     this.loadingForProvider = providerName;
 
     try {
-      const fields: Field[] = await ProviderSource.getConnectionInfoSchema(
-        providerName
-      );
+      const fields: Field[] =
+        await ProviderSource.getConnectionInfoSchema(providerName);
       await this.setRegions(fields.find(f => f.name === "mapped_regions"));
       runInAction(() => {
         this.connectionInfoSchema = fields;
@@ -288,7 +285,7 @@ class ProviderStore {
   @action loadOptionsSchemaSuccess(
     fields: Field[],
     optionsType: "source" | "destination",
-    isValid: boolean
+    isValid: boolean,
   ) {
     if (!isValid) {
       return;
@@ -302,7 +299,7 @@ class ProviderStore {
 
   @action loadOptionsSchemaDone(
     optionsType: "source" | "destination",
-    isValid: boolean
+    isValid: boolean,
   ) {
     if (!isValid) {
       return;
@@ -357,7 +354,7 @@ class ProviderStore {
       return [];
     }
     const providerWithExtraOptions = this.providers[providerName].types.find(
-      t => t === providerType
+      t => t === providerType,
     );
     if (!providerWithExtraOptions) {
       return [];
@@ -418,7 +415,7 @@ class ProviderStore {
 
   @action getOptionsValuesStart(
     optionsType: "source" | "destination",
-    isPrimary: boolean
+    isPrimary: boolean,
   ) {
     if (optionsType === "source") {
       if (isPrimary) {
@@ -442,7 +439,7 @@ class ProviderStore {
   @action getOptionsValuesDone(
     optionsType: "source" | "destination",
     isPrimary: boolean,
-    isValid: boolean
+    isValid: boolean,
   ) {
     if (!isValid) {
       return;

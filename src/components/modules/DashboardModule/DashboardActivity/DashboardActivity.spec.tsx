@@ -21,10 +21,10 @@ import { ThemePalette } from "@src/components/Theme";
 import DashboardActivity from ".";
 
 const encodedProgressImage = encodeURIComponent(
-  progressImage(ThemePalette.grayscale[3], ThemePalette.primary)
+  progressImage(ThemePalette.grayscale[3], ThemePalette.primary),
 );
 
-jest.mock("react-router-dom", () => ({ Link: "a" }));
+jest.mock("react-router", () => ({ Link: "a" }));
 
 const ITEMS: NotificationItemData[] = [
   {
@@ -54,14 +54,14 @@ describe("DashboardActivity", () => {
   it("renders no recent activity", () => {
     render(<DashboardActivity notificationItems={[]} />);
     expect(
-      TestUtils.select("DashboardActivity__Message")!.textContent
+      TestUtils.select("DashboardActivity__Message")!.textContent,
     ).toContain("There is no recent activity");
   });
 
   it("fires new click", () => {
     const onNewClick = jest.fn();
     render(
-      <DashboardActivity notificationItems={[]} onNewClick={onNewClick} />
+      <DashboardActivity notificationItems={[]} onNewClick={onNewClick} />,
     );
     TestUtils.select("Button__StyledButton")!.click();
     expect(onNewClick).toHaveBeenCalled();
@@ -69,7 +69,7 @@ describe("DashboardActivity", () => {
 
   it("renders loading", () => {
     const { rerender } = render(
-      <DashboardActivity notificationItems={[]} loading />
+      <DashboardActivity notificationItems={[]} loading />,
     );
     expect(TestUtils.select("DashboardActivity__LoadingWrapper")).toBeTruthy();
 
@@ -85,10 +85,10 @@ describe("DashboardActivity", () => {
   });
 
   it.each`
-    idx  | href                     | expectedStatusIcon
-    ${0} | ${"/replicas/1"}         | ${"error-hollow.svg"}
-    ${1} | ${"/migrations/2/tasks"} | ${encodedProgressImage}
-    ${2} | ${"/migrations/3"}       | ${"success-hollow.svg"}
+    idx  | href                | expectedStatusIcon
+    ${0} | ${"/deployments/1"} | ${"error-hollow.svg"}
+    ${1} | ${"/deployments/2"} | ${encodedProgressImage}
+    ${2} | ${"/deployments/3"} | ${"success-hollow.svg"}
   `("renders item with href $href", ({ idx, href, expectedStatusIcon }) => {
     render(<DashboardActivity notificationItems={ITEMS} />);
 
@@ -96,21 +96,21 @@ describe("DashboardActivity", () => {
     expect(itemElement.getAttribute("to")).toBe(href);
 
     const background = window.getComputedStyle(
-      TestUtils.select("StatusIcon__Wrapper", itemElement)!
+      TestUtils.select("StatusIcon__Wrapper", itemElement)!,
     ).background;
     expect(background).toContain(expectedStatusIcon);
 
     expect(
-      TestUtils.select("NotificationDropdown__ItemReplicaBadge", itemElement)!
-        .textContent
-    ).toContain(ITEMS[idx].type === "replica" ? "RE" : "MI");
+      TestUtils.select("NotificationDropdown__ItemTransferBadge", itemElement)!
+        .textContent,
+    ).toContain(ITEMS[idx].type === "transfer" ? "TR" : "DE");
     expect(
       TestUtils.select("NotificationDropdown__ItemTitle", itemElement)!
-        .textContent
+        .textContent,
     ).toContain(ITEMS[idx].name);
     expect(
       TestUtils.select("NotificationDropdown__ItemDescription", itemElement)!
-        .textContent
+        .textContent,
     ).toContain(ITEMS[idx].description);
   });
 });

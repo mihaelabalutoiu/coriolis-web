@@ -19,8 +19,8 @@ import DateUtils from "@src/utils/DateUtils";
 import type { Schedule } from "@src/@types/Schedule";
 class ScheduleSource {
   async scheduleSinge(
-    replicaId: string,
-    scheduleData: Schedule
+    transferId: string,
+    scheduleData: Schedule,
   ): Promise<Schedule> {
     const payload: any = {
       schedule: {},
@@ -30,11 +30,13 @@ class ScheduleSource {
         scheduleData.shutdown_instances == null
           ? false
           : scheduleData.shutdown_instances,
+      auto_deploy:
+        scheduleData.auto_deploy == null ? false : scheduleData.auto_deploy,
     };
 
     if (scheduleData.expiration_date) {
       payload.expiration_date = new Date(
-        scheduleData.expiration_date
+        scheduleData.expiration_date,
       ).toISOString();
     }
 
@@ -51,7 +53,7 @@ class ScheduleSource {
     }
 
     const response = await Api.send({
-      url: `${configLoader.config.servicesUrls.coriolis}/${Api.projectId}/replicas/${replicaId}/schedules`,
+      url: `${configLoader.config.servicesUrls.coriolis}/${Api.projectId}/transfers/${transferId}/schedules`,
       method: "POST",
       data: payload,
     });
@@ -59,27 +61,27 @@ class ScheduleSource {
   }
 
   async scheduleMultiple(
-    replicaId: string,
-    schedules: Schedule[]
+    transferId: string,
+    schedules: Schedule[],
   ): Promise<Schedule[]> {
     const scheduledSchedules: Schedule[] = await Promise.all(
       schedules.map(async schedule => {
         const scheduledSchedule: Schedule = await this.scheduleSinge(
-          replicaId,
-          schedule
+          transferId,
+          schedule,
         );
         return scheduledSchedule;
-      })
+      }),
     );
     return scheduledSchedules;
   }
 
   async getSchedules(
-    replicaId: string,
-    opts?: { skipLog?: boolean }
+    transferId: string,
+    opts?: { skipLog?: boolean },
   ): Promise<Schedule[]> {
     const response = await Api.send({
-      url: `${configLoader.config.servicesUrls.coriolis}/${Api.projectId}/replicas/${replicaId}/schedules`,
+      url: `${configLoader.config.servicesUrls.coriolis}/${Api.projectId}/transfers/${transferId}/schedules`,
       skipLog: opts && opts.skipLog,
     });
 
@@ -90,15 +92,16 @@ class ScheduleSource {
         : undefined,
       shutdown_instances:
         s.shutdown_instance != null ? s.shutdown_instance : undefined,
+      auto_deploy: s.auto_deploy != null ? s.auto_deploy : undefined,
     }));
     schedules.sort(
       (a, b) =>
-        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
     );
     return schedules;
   }
 
-  async addSchedule(replicaId: string, schedule: Schedule): Promise<Schedule> {
+  async addSchedule(transferId: string, schedule: Schedule): Promise<Schedule> {
     const payload: any = {
       schedule: { hour: 0, minute: 0 },
       enabled: false,
@@ -108,29 +111,29 @@ class ScheduleSource {
     }
 
     const response = await Api.send({
-      url: `${configLoader.config.servicesUrls.coriolis}/${Api.projectId}/replicas/${replicaId}/schedules`,
+      url: `${configLoader.config.servicesUrls.coriolis}/${Api.projectId}/transfers/${transferId}/schedules`,
       method: "POST",
       data: payload,
     });
     return response.data.schedule;
   }
 
-  async removeSchedule(replicaId: string, scheduleId: string): Promise<void> {
+  async removeSchedule(transferId: string, scheduleId: string): Promise<void> {
     await Api.send({
-      url: `${configLoader.config.servicesUrls.coriolis}/${Api.projectId}/replicas/${replicaId}/schedules/${scheduleId}`,
+      url: `${configLoader.config.servicesUrls.coriolis}/${Api.projectId}/transfers/${transferId}/schedules/${scheduleId}`,
       method: "DELETE",
     });
   }
 
   async updateSchedule(opts: {
-    replicaId: string;
+    transferId: string;
     scheduleId: string;
     scheduleData: Schedule;
     scheduleOldData: Schedule | null | undefined;
     unsavedData: Schedule | null | undefined;
   }): Promise<Schedule> {
     const {
-      replicaId,
+      transferId: transferId,
       scheduleId,
       scheduleData,
       scheduleOldData,
@@ -143,9 +146,12 @@ class ScheduleSource {
     if (scheduleData.shutdown_instances != null) {
       payload.shutdown_instance = scheduleData.shutdown_instances;
     }
+    if (scheduleData.auto_deploy != null) {
+      payload.auto_deploy = scheduleData.auto_deploy;
+    }
     if (unsavedData?.expiration_date) {
       payload.expiration_date = new Date(
-        unsavedData.expiration_date
+        unsavedData.expiration_date,
       ).toISOString();
     }
     if (
@@ -167,7 +173,7 @@ class ScheduleSource {
     }
 
     const response = await Api.send({
-      url: `${configLoader.config.servicesUrls.coriolis}/${Api.projectId}/replicas/${replicaId}/schedules/${scheduleId}`,
+      url: `${configLoader.config.servicesUrls.coriolis}/${Api.projectId}/transfers/${transferId}/schedules/${scheduleId}`,
       method: "PUT",
       data: payload,
     });

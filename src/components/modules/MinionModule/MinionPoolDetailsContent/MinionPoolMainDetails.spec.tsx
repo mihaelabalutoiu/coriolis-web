@@ -17,11 +17,11 @@ import React from "react";
 import { render } from "@testing-library/react";
 import { OPENSTACK_ENDPOINT_MOCK } from "@tests/mocks/EndpointsMock";
 import { MINION_POOL_MOCK } from "@tests/mocks/MinionPoolMock";
-import { MIGRATION_MOCK, REPLICA_MOCK } from "@tests/mocks/TransferMock";
+import { DEPLOYMENT_MOCK, TRANSFER_MOCK } from "@tests/mocks/TransferMock";
 
 import MinionPoolMainDetails from "./MinionPoolMainDetails";
 
-jest.mock("react-router-dom", () => ({ Link: "a" }));
+jest.mock("react-router", () => ({ Link: "a" }));
 jest.mock("@src/components/modules/EndpointModule/EndpointLogos", () => ({
   __esModule: true,
   default: (props: any) => (
@@ -35,8 +35,8 @@ describe("MinionPoolMainDetails", () => {
   beforeEach(() => {
     defaultProps = {
       item: MINION_POOL_MOCK,
-      replicas: [REPLICA_MOCK],
-      migrations: [MIGRATION_MOCK],
+      transfers: [TRANSFER_MOCK],
+      deployments: [DEPLOYMENT_MOCK],
       schema: [],
       schemaLoading: false,
       endpoints: [OPENSTACK_ENDPOINT_MOCK],
@@ -46,17 +46,17 @@ describe("MinionPoolMainDetails", () => {
 
   it("renders without crashing", () => {
     const { getByText, getByTestId } = render(
-      <MinionPoolMainDetails {...defaultProps} />
+      <MinionPoolMainDetails {...defaultProps} />,
     );
     expect(getByText(MINION_POOL_MOCK.notes!)).toBeTruthy();
     expect(getByText(OPENSTACK_ENDPOINT_MOCK.name)).toBeTruthy();
     expect(getByTestId("bottom-controls")).toBeTruthy();
     expect(
-      getByText(MINION_POOL_MOCK.environment_options.option_1)
+      getByText(MINION_POOL_MOCK.environment_options.option_1),
     ).toBeTruthy();
     expect(getByText("Object Option - Object Option 1")).toBeTruthy();
     expect(
-      getByText(MINION_POOL_MOCK.environment_options.array_option[0])
+      getByText(MINION_POOL_MOCK.environment_options.array_option[0]),
     ).toBeTruthy();
     expect(getByText("source_value=destination_value")).toBeTruthy();
   });

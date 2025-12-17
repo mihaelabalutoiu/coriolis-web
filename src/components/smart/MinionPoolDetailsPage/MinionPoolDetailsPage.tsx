@@ -15,6 +15,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import React from "react";
 import styled from "styled-components";
 import { observer } from "mobx-react";
+import { useNavigate, useParams } from "react-router";
 
 import DetailsTemplate from "@src/components/modules/TemplateModule/DetailsTemplate";
 import DetailsPageHeader from "@src/components/modules/DetailsModule/DetailsPageHeader";
@@ -34,18 +35,19 @@ import { ThemePalette } from "@src/components/Theme";
 import minionPoolStore from "@src/stores/MinionPoolStore";
 import MinionPoolModal from "@src/components/modules/MinionModule/MinionPoolModal";
 import MinionPoolDetailsContent from "@src/components/modules/MinionModule/MinionPoolDetailsContent";
-import replicaStore from "@src/stores/ReplicaStore";
-import migrationStore from "@src/stores/MigrationStore";
+import transferStore from "@src/stores/TransferStore";
+import deploymentStore from "@src/stores/DeploymentStore";
 import MinionPoolConfirmationModal from "@src/components/modules/MinionModule/MinionPoolConfirmationModal";
 import providerStore from "@src/stores/ProviderStore";
 import { Field } from "@src/@types/Field";
+import { ActionItem } from "@src/@types/MainItem";
 import minionPoolImage from "./images/minion-pool.svg";
 
 const Wrapper = styled.div<any>``;
 
 type Props = {
   match: { params: { id: string; page: string | null } };
-  history: any;
+  onNavigate: (path: string) => void;
 };
 type State = {
   showEditModal: boolean;
@@ -102,7 +104,7 @@ class MinionPoolDetailsPage extends React.Component<Props, State> {
   get envData() {
     return this.getSchemaData(
       minionPoolStore.minionPoolEnvSchema,
-      minionPoolStore.minionPoolDetails?.environment_options
+      minionPoolStore.minionPoolDetails?.environment_options,
     );
   }
 
@@ -110,7 +112,7 @@ class MinionPoolDetailsPage extends React.Component<Props, State> {
     const envData = this.envData;
     const defaultData = this.getSchemaData(
       minionPoolStore.minionPoolDefaultSchema,
-      minionPoolStore.minionPoolDetails
+      minionPoolStore.minionPoolDetails,
     );
     return defaultData || envData ? { ...defaultData, ...envData } : null;
   }
@@ -134,31 +136,31 @@ class MinionPoolDetailsPage extends React.Component<Props, State> {
       minionPoolStore.loadMinionPoolDetails(this.minionPoolId, {
         showLoading: true,
       }),
-      replicaStore.getReplicas(),
-      migrationStore.getMigrations(),
+      transferStore.getTransfers(),
+      deploymentStore.getDeployments(),
     ]);
     const minionPool = this.minionPool;
     if (!minionPool) {
       notificationStore.alert(
         `Minion pool with ID '${usableId}' was not found`,
-        "error"
+        "error",
       );
       return;
     }
 
     const endpoint = endpointStore.endpoints.find(
-      e => e.id === minionPool.endpoint_id
+      e => e.id === minionPool.endpoint_id,
     );
     if (!endpoint) {
       notificationStore.alert(
         "The endpoint associated to this minion pool was not found",
-        "error"
+        "error",
       );
       return;
     }
     await minionPoolStore.loadMinionPoolSchema(
       endpoint.type,
-      minionPool.platform
+      minionPool.platform,
     );
     await providerStore.loadProviders();
     await minionPoolStore.loadOptions({
@@ -185,7 +187,7 @@ class MinionPoolDetailsPage extends React.Component<Props, State> {
 
   handleDeleteMinionPool() {
     this.setState({ showDeleteMinionPoolConfirmation: false });
-    this.props.history.push("/minion-pools");
+    this.props.onNavigate("/minion-pools");
     minionPoolStore.deleteMinionPool(this.minionPool!.id);
   }
 
@@ -203,8 +205,8 @@ class MinionPoolDetailsPage extends React.Component<Props, State> {
         showLoading,
         skipLog: true,
       }),
-      replicaStore.getReplicas(),
-      migrationStore.getMigrations(),
+      transferStore.getTransfers(),
+      deploymentStore.getDeployments(),
     ]);
 
     setTimeout(() => {
@@ -219,7 +221,7 @@ class MinionPoolDetailsPage extends React.Component<Props, State> {
   }
 
   handleUpdateComplete(redirectTo: string) {
-    this.props.history.push(redirectTo);
+    this.props.onNavigate(redirectTo);
     this.closeEditModal();
   }
 
@@ -245,7 +247,7 @@ class MinionPoolDetailsPage extends React.Component<Props, State> {
     notificationStore.alert("Refreshing minion pool...");
     await minionPoolStore.runAction(this.minionPool.id, "refresh");
     await minionPoolStore.loadMinionPoolDetails(this.minionPool.id);
-    this.props.history.push(`/minion-pools/${this.minionPool.id}/machines`);
+    this.props.onNavigate(`/minion-pools/${this.minionPool.id}/machines`);
   }
 
   async handleDeallocateConfirmation(force: boolean) {
@@ -267,7 +269,7 @@ class MinionPoolDetailsPage extends React.Component<Props, State> {
       return null;
     }
     const endpoint = endpointStore.endpoints.find(
-      e => e.id === this.minionPool?.endpoint_id
+      e => e.id === this.minionPool?.endpoint_id,
     );
     if (!endpoint) {
       return null;
@@ -353,6 +355,19 @@ class MinionPoolDetailsPage extends React.Component<Props, State> {
       },
     ];
 
+    const checkPoolUsed = (i: ActionItem): boolean | undefined => {
+      return (
+        i.origin_minion_pool_id === this.minionPool?.id ||
+        i.destination_minion_pool_id === this.minionPool?.id ||
+        (i.instance_osmorphing_minion_pool_mappings &&
+          this.minionPool?.id &&
+          Object.values(i.instance_osmorphing_minion_pool_mappings).includes(
+            this.minionPool.id,
+          )) ||
+        undefined
+      );
+    };
+
     return (
       <Wrapper>
         <DetailsTemplate
@@ -379,16 +394,8 @@ class MinionPoolDetailsPage extends React.Component<Props, State> {
             <MinionPoolDetailsContent
               item={this.minionPool}
               itemId={this.minionPoolId}
-              replicas={replicaStore.replicas.filter(
-                r =>
-                  r.origin_minion_pool_id === this.minionPool?.id ||
-                  r.destination_minion_pool_id === this.minionPool?.id
-              )}
-              migrations={migrationStore.migrations.filter(
-                r =>
-                  r.origin_minion_pool_id === this.minionPool?.id ||
-                  r.destination_minion_pool_id === this.minionPool?.id
-              )}
+              transfers={transferStore.transfers.filter(checkPoolUsed)}
+              deployments={deploymentStore.deployments.filter(checkPoolUsed)}
               endpoints={endpointStore.endpoints}
               schema={minionPoolStore.minionPoolCombinedSchema}
               schemaLoading={
@@ -438,4 +445,20 @@ class MinionPoolDetailsPage extends React.Component<Props, State> {
   }
 }
 
-export default MinionPoolDetailsPage;
+function MinionPoolDetailsPageWithNavigate() {
+  const navigate = useNavigate();
+  const { id, page } = useParams();
+
+  if (!id) {
+    throw new Error("The 'id' parameter is required but was not provided.");
+  }
+
+  return (
+    <MinionPoolDetailsPage
+      onNavigate={navigate}
+      match={{ params: { id, page: page || null } }}
+    />
+  );
+}
+
+export default MinionPoolDetailsPageWithNavigate;

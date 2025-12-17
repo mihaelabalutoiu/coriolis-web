@@ -35,7 +35,7 @@ class ProjectsSource {
 
   async getProjectDetails(projectId: string): Promise<Project> {
     const response = await Api.get(
-      `${configLoader.config.servicesUrls.keystone}/projects/${projectId}`
+      `${configLoader.config.servicesUrls.keystone}/projects/${projectId}`,
     );
     return response.data.project;
   }
@@ -46,8 +46,14 @@ class ProjectsSource {
       skipLog,
     });
     const assignments: RoleAssignment[] = response.data.role_assignments;
-    assignments.sort((a1, a2) => a1.role.name.localeCompare(a2.role.name));
-    return assignments;
+    const hiddenRoles = configLoader.config.hiddenUserRoles || [];
+    const filteredAssignments = assignments.filter(
+      a => !hiddenRoles.includes(a.role.name),
+    );
+    filteredAssignments.sort((a1, a2) =>
+      a1.role.name.localeCompare(a2.role.name),
+    );
+    return filteredAssignments;
   }
 
   async getUsers(projectId: string): Promise<User[]> {
@@ -60,7 +66,7 @@ class ProjectsSource {
       userIds.map(async id => {
         const user: User = await UserSource.getUserInfo(id);
         return user;
-      })
+      }),
     );
     users.sort((a, b) => a.name.localeCompare(b.name));
     return users;
@@ -69,7 +75,7 @@ class ProjectsSource {
   async removeUser(
     projectId: string,
     userId: string,
-    roleIds: string[]
+    roleIds: string[],
   ): Promise<void> {
     await Promise.all(
       roleIds.map(async id => {
@@ -77,14 +83,14 @@ class ProjectsSource {
           url: `${configLoader.config.servicesUrls.keystone}/projects/${projectId}/users/${userId}/roles/${id}`,
           method: "DELETE",
         });
-      })
+      }),
     );
   }
 
   async assignUser(
     projectId: string,
     userId: string,
-    roleId: string
+    roleId: string,
   ): Promise<void> {
     await Api.send({
       url: `${configLoader.config.servicesUrls.keystone}/projects/${projectId}/users/${userId}/roles/${roleId}`,
@@ -144,7 +150,7 @@ class ProjectsSource {
     await UserSource.assignUserToProjectWithRole(
       userId,
       addedProject.id,
-      adminRoleId
+      adminRoleId,
     );
     return addedProject;
   }

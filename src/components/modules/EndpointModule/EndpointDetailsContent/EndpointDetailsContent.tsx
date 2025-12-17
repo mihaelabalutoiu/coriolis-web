@@ -14,16 +14,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import { observer } from "mobx-react";
 import * as React from "react";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import styled from "styled-components";
 
 import { Field as FieldType } from "@src/@types/Field";
-import {
-  getTransferItemTitle,
-  MigrationItem,
-  ReplicaItem,
-  TransferItem,
-} from "@src/@types/MainItem";
+import { getTransferItemTitle, TransferItem } from "@src/@types/MainItem";
 import { Region } from "@src/@types/Region";
 import EndpointLogos from "@src/components/modules/EndpointModule/EndpointLogos";
 import { ThemePalette, ThemeProps } from "@src/components/Theme";
@@ -102,7 +97,7 @@ type Props = {
   regions: Region[];
   connectionInfo: Endpoint["connection_info"] | null;
   loading: boolean;
-  usage: { migrations: MigrationItem[]; replicas: ReplicaItem[] };
+  transfers: TransferItem[];
   connectionInfoSchema: FieldType[];
   onDeleteClick: () => void;
   onValidateClick: () => void;
@@ -171,7 +166,7 @@ class EndpointDetailsContent extends React.Component<Props> {
 
       let valueElement = null;
       const schemaField = this.props.connectionInfoSchema.find(
-        f => f.name === key
+        f => f.name === key,
       );
 
       if (
@@ -220,7 +215,7 @@ class EndpointDetailsContent extends React.Component<Props> {
       <span>
         {this.props.item?.mapped_regions
           .map(
-            regionId => this.props.regions.find(r => r.id === regionId)?.name
+            regionId => this.props.regions.find(r => r.id === regionId)?.name,
           )
           .join(", ") || "-"}
       </span>
@@ -232,7 +227,7 @@ class EndpointDetailsContent extends React.Component<Props> {
       <TransferItems>
         {items.map(item => (
           <TransferItemWrapper key={item.id}>
-            <LinkStyled to={`/${item.type}s/${item.id}`}>
+            <LinkStyled to={`/transfers/${item.id}`}>
               {getTransferItemTitle(item)}
             </LinkStyled>
           </TransferItemWrapper>
@@ -250,9 +245,6 @@ class EndpointDetailsContent extends React.Component<Props> {
       created_at: createdAt,
       id,
     } = this.props.item || {};
-    const usage: TransferItem[] = this.props.usage.replicas.concat(
-      this.props.usage.migrations as any[]
-    );
 
     return (
       <Wrapper>
@@ -271,7 +263,7 @@ class EndpointDetailsContent extends React.Component<Props> {
             {this.renderValue(
               this.props.item
                 ? configLoader.config.providerNames[this.props.item.type]
-                : ""
+                : "",
             )}
           </Field>
           <Field>
@@ -289,12 +281,16 @@ class EndpointDetailsContent extends React.Component<Props> {
           <Field>
             <Label>Created</Label>
             {this.renderValue(
-              DateUtils.getLocalDate(createdAt!).toFormat("dd/LL/yyyy HH:mm")
+              DateUtils.getLocalDate(createdAt!).toFormat("dd/LL/yyyy HH:mm"),
             )}
           </Field>
           <Field>
-            <Label>Used in replicas/migrations ({usage.length})</Label>
-            {usage.length > 0 ? this.renderUsage(usage) : <Value>-</Value>}
+            <Label>Used in transfers ({this.props.transfers.length})</Label>
+            {this.props.transfers.length > 0 ? (
+              this.renderUsage(this.props.transfers)
+            ) : (
+              <Value>-</Value>
+            )}
           </Field>
           {!this.props.connectionInfo
             ? this.renderConnectionInfoLoading()

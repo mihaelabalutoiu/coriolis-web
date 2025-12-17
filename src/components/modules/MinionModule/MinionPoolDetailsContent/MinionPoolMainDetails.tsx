@@ -14,11 +14,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import { observer } from "mobx-react";
 import * as React from "react";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import styled, { css } from "styled-components";
 
 import fieldHelper from "@src/@types/Field";
-import { MigrationItem, ReplicaItem, TransferItem } from "@src/@types/MainItem";
+import { DeploymentItem, TransferItem, ActionItem } from "@src/@types/MainItem";
 import { MinionPool } from "@src/@types/MinionPool";
 import EndpointLogos from "@src/components/modules/EndpointModule/EndpointLogos";
 import { ThemePalette, ThemeProps } from "@src/components/Theme";
@@ -101,8 +101,8 @@ const PropertyValue = styled.div<any>`
 
 type Props = {
   item?: MinionPool | null;
-  replicas: ReplicaItem[];
-  migrations: MigrationItem[];
+  transfers: TransferItem[];
+  deployments: DeploymentItem[];
   schema: FieldType[];
   schemaLoading: boolean;
   endpoints: Endpoint[];
@@ -112,7 +112,7 @@ type Props = {
 class MinionPoolMainDetails extends React.Component<Props> {
   getEndpoint(): Endpoint | undefined {
     const endpoint = this.props.endpoints.find(
-      e => e.id === this.props.item?.endpoint_id
+      e => e.id === this.props.item?.endpoint_id,
     );
     return endpoint;
   }
@@ -121,8 +121,8 @@ class MinionPoolMainDetails extends React.Component<Props> {
     return this.props.item?.updated_at
       ? this.renderValue(
           DateUtils.getLocalDate(this.props.item.updated_at).toFormat(
-            "yyyy-LL-dd HH:mm:ss"
-          )
+            "yyyy-LL-dd HH:mm:ss",
+          ),
         )
       : "-";
   }
@@ -163,7 +163,7 @@ class MinionPoolMainDetails extends React.Component<Props> {
         return value
           .map(
             (v: { source: any; destination: any }) =>
-              `${v.source}=${v.destination}`
+              `${v.source}=${v.destination}`,
           )
           .join(", ");
       }
@@ -178,7 +178,7 @@ class MinionPoolMainDetails extends React.Component<Props> {
 
     let properties: any[] = [];
     const plugin = endpoint && OptionsSchemaPlugin.for(endpoint.type);
-    const migrationImageMapFieldName =
+    const deploymentImageMapFieldName =
       plugin && plugin.migrationImageMapFieldName;
     let dictionaryKey = "";
     if (endpoint) {
@@ -202,8 +202,8 @@ class MinionPoolMainDetails extends React.Component<Props> {
             }
             let fieldName = pn;
             if (
-              migrationImageMapFieldName &&
-              fieldName === migrationImageMapFieldName
+              deploymentImageMapFieldName &&
+              fieldName === deploymentImageMapFieldName
             ) {
               fieldName = p;
             }
@@ -211,7 +211,7 @@ class MinionPoolMainDetails extends React.Component<Props> {
               label: `${label} - ${LabelDictionary.get(p)}`,
               value: getValue(fieldName, value[p]),
             };
-          })
+          }),
         );
       } else {
         properties.push({ label, value: getValue(pn, value) });
@@ -235,14 +235,18 @@ class MinionPoolMainDetails extends React.Component<Props> {
     );
   }
 
-  renderUsage(items: TransferItem[]) {
-    return items.map(item => (
-      <div key={item.id}>
-        <ValueLink to={`/${item.type}s/${item.id}`}>
-          {item.instances[0]}
-        </ValueLink>
-      </div>
-    ));
+  renderUsage(items: ActionItem[]) {
+    return items.map(item => {
+      const actionHref = item.type === "transfer" ? "transfers" : "deployments";
+
+      return (
+        <div key={item.id}>
+          <ValueLink to={`/${actionHref}/${item.id}`}>
+            {item.instances[0]}
+          </ValueLink>
+        </div>
+      );
+    });
   }
 
   renderTable() {
@@ -258,13 +262,13 @@ class MinionPoolMainDetails extends React.Component<Props> {
               (k !== "storage_mappings" ||
                 (env[k] != null &&
                   typeof env[k] === "object" &&
-                  Object.keys(env[k]).length > 0))
+                  Object.keys(env[k]).length > 0)),
           )
         : [];
     };
 
-    const usage: TransferItem[] = this.props.replicas.concat(
-      this.props.migrations as any[]
+    const usage: ActionItem[] = this.props.transfers.concat(
+      this.props.deployments as any[],
     );
 
     return (
@@ -303,8 +307,8 @@ class MinionPoolMainDetails extends React.Component<Props> {
               {this.props.item?.created_at ? (
                 this.renderValue(
                   DateUtils.getLocalDate(this.props.item.created_at).toFormat(
-                    "yyyy-LL-dd HH:mm:ss"
-                  )
+                    "yyyy-LL-dd HH:mm:ss",
+                  ),
                 )
               ) : (
                 <Value>-</Value>
@@ -329,7 +333,7 @@ class MinionPoolMainDetails extends React.Component<Props> {
           ) : null}
           <Row>
             <Field>
-              <Label>Used in Replicas/Migrations ({usage.length})</Label>
+              <Label>Used in Transfers ({usage.length})</Label>
               {usage.length > 0 ? this.renderUsage(usage) : <Value>-</Value>}
             </Field>
           </Row>

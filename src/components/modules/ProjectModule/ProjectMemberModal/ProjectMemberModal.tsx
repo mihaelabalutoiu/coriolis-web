@@ -27,6 +27,7 @@ import AutocompleteDropdown from "@src/components/ui/Dropdowns/AutocompleteDropd
 
 import { ThemePalette, ThemeProps } from "@src/components/Theme";
 import KeyboardManager from "@src/utils/KeyboardManager";
+import configLoader from "@src/utils/Config";
 
 import userImage from "./images/user.svg";
 
@@ -157,7 +158,7 @@ class ProjectMemberModal extends React.Component<Props, State> {
         this.props.roles.find(r => r.id === id) || {
           id: "undefined",
           name: "",
-        }
+        },
     );
     this.props.onAddClick(user, this.state.isNew, roles);
   }
@@ -236,6 +237,10 @@ class ProjectMemberModal extends React.Component<Props, State> {
       }
     };
     const highlighFieldName = this.state.isNew ? "rolesNew" : "rolesExisting";
+    const hiddenRoles = configLoader.config.hiddenUserRoles || [];
+    const filteredRoles = this.props.roles.filter(
+      r => !hiddenRoles.includes(r.name),
+    );
 
     return (
       <FieldInput
@@ -254,12 +259,10 @@ class ProjectMemberModal extends React.Component<Props, State> {
         width={ThemeProps.inputSizes.large.width}
         layout="modal"
         disabled={this.props.loading}
-        enum={this.props.roles
-          .filter(r => r.name !== "key-manager:service-admin")
-          .map(r => ({ name: r.name, id: r.id }))}
+        enum={filteredRoles.map(r => ({ name: r.name, id: r.id }))}
         required
         highlight={Boolean(
-          this.state.highlightFieldNames.find(n => n === highlighFieldName)
+          this.state.highlightFieldNames.find(n => n === highlighFieldName),
         )}
         noSelectionMessage="Choose role(s)"
         noItemsMessage="No available roles"
@@ -284,7 +287,7 @@ class ProjectMemberModal extends React.Component<Props, State> {
         }
         required={field.required}
         highlight={Boolean(
-          this.state.highlightFieldNames.find(n => n === field.name)
+          this.state.highlightFieldNames.find(n => n === field.name),
         )}
         noSelectionMessage="Choose a project"
         noItemsMessage="No available members"
@@ -307,14 +310,14 @@ class ProjectMemberModal extends React.Component<Props, State> {
         this.state.username,
         username => {
           this.setState({ username });
-        }
+        },
       ),
       this.renderField(
         { name: "description", label: "Description" },
         this.state.description,
         description => {
           this.setState({ description });
-        }
+        },
       ),
       this.renderField(
         {
@@ -325,7 +328,7 @@ class ProjectMemberModal extends React.Component<Props, State> {
         this.state.projectId,
         projectId => {
           this.setState({ projectId });
-        }
+        },
       ),
       this.renderRolesField(),
       this.renderField(
@@ -333,28 +336,28 @@ class ProjectMemberModal extends React.Component<Props, State> {
         this.state.password,
         password => {
           this.setState({ password });
-        }
+        },
       ),
       this.renderField(
         { name: "confirm_password", label: "Confirm Password", required: true },
         this.state.confirmPassword,
         confirmPassword => {
           this.setState({ confirmPassword });
-        }
+        },
       ),
       this.renderField(
         { name: "Email", label: "Email" },
         this.state.email,
         email => {
           this.setState({ email });
-        }
+        },
       ),
       this.renderField(
         { name: "Enabled", label: "Enabled", type: "boolean" },
         this.state.enabled,
         enabled => {
           this.setState({ enabled });
-        }
+        },
       ),
     ];
 
@@ -375,7 +378,7 @@ class ProjectMemberModal extends React.Component<Props, State> {
               this.state.selectedUser ? this.state.selectedUser.id : ""
             }
             highlight={Boolean(
-              this.state.highlightFieldNames.find(n => n === "selectedUser")
+              this.state.highlightFieldNames.find(n => n === "selectedUser"),
             )}
             onChange={item => {
               this.setState({

@@ -17,7 +17,7 @@ import { observer } from "mobx-react";
 import React from "react";
 import styled from "styled-components";
 
-import ReplicaExecutionOptions from "@src/components/modules/TransferModule/ReplicaExecutionOptions";
+import TransferExecutionOptions from "@src/components/modules/TransferModule/TransferExecutionOptions";
 import ScheduleItem from "@src/components/modules/TransferModule/ScheduleItem";
 import { ThemePalette, ThemeProps } from "@src/components/Theme";
 import AlertModal from "@src/components/ui/AlertModal";
@@ -115,7 +115,7 @@ type Props = {
   onChange: (
     scheduleId: string,
     schedule: ScheduleType,
-    forceSave?: boolean
+    forceSave?: boolean,
   ) => void;
   onRemove: (scheduleId: string) => void;
   onSaveSchedule?: (schedule: ScheduleType) => void;
@@ -176,9 +176,13 @@ class Schedule extends React.Component<Props, State> {
 
   handleOptionsSave(fields: Field[]) {
     this.setState({ showOptionsModal: false });
+    let execOptions = this.state.executionOptions;
+    if (!execOptions) {
+      execOptions = {};
+    }
     const options: any = {};
     fields.forEach(f => {
-      options[f.name] = f.value || false;
+      options[f.name] = f.value || execOptions![f.name] || false;
     });
 
     if (this.state.selectedSchedule && this.state.selectedSchedule.id) {
@@ -274,13 +278,13 @@ class Schedule extends React.Component<Props, State> {
               this.handleDeleteClick(schedule);
             }}
             saving={Boolean(
-              this.props.savingIds?.find(id => id === schedule.id)
+              this.props.savingIds?.find(id => id === schedule.id),
             )}
             enabling={Boolean(
-              this.props.enablingIds?.find(id => id === schedule.id)
+              this.props.enablingIds?.find(id => id === schedule.id),
             )}
             deleting={Boolean(
-              this.props.deletingIds?.find(id => id === schedule.id)
+              this.props.deletingIds?.find(id => id === schedule.id),
             )}
           />
         ))}
@@ -318,13 +322,13 @@ class Schedule extends React.Component<Props, State> {
         <ScheduleImage />
         <NoSchedulesTitle>
           {this.props.secondaryEmpty
-            ? "Schedule this Replica"
-            : "This Replica has no Schedules."}
+            ? "Schedule this Transfer"
+            : "This Transfer has no Schedules."}
         </NoSchedulesTitle>
         <NoSchedulesSubtitle>
           {this.props.secondaryEmpty
-            ? "You can schedule this replica so that it executes automatically."
-            : "Add a new schedule so that the Replica executes automatically."}
+            ? "You can schedule this Transfer so that it executes automatically."
+            : "Add a new schedule so that the Transfer executes automatically."}
         </NoSchedulesSubtitle>
         {this.props.adding ? (
           <LoadingButton>Adding ...</LoadingButton>
@@ -383,7 +387,7 @@ class Schedule extends React.Component<Props, State> {
             selectedItem={selectedItem}
             onChange={item => {
               this.props.onTimezoneChange(
-                item.value === "utc" ? "utc" : "local"
+                item.value === "utc" ? "utc" : "local",
               );
             }}
           />
@@ -407,7 +411,7 @@ class Schedule extends React.Component<Props, State> {
               this.handleCloseOptionsModal();
             }}
           >
-            <ReplicaExecutionOptions
+            <TransferExecutionOptions
               disableExecutionOptions={this.props.disableExecutionOptions}
               options={this.state.executionOptions}
               onChange={(fieldName, value) => {

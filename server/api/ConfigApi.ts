@@ -26,11 +26,11 @@ const getBaseUrl = () => {
 
 const modServicesUrls = (
   configServices: Services,
-  servicesMod?: Services
+  servicesMod?: Services,
 ): Services => {
   const services = { ...configServices };
 
-  Object.keys(services).forEach((key) => {
+  Object.keys(services).forEach(key => {
     const typedKey = key as keyof Services;
     services[typedKey] = (
       servicesMod && servicesMod[typedKey]
@@ -58,14 +58,14 @@ export default (router: express.Router) => {
       try {
         const jsonContent: any = fs.readFileSync(modJsonPath);
         const configMod = JSON.parse(jsonContent).config;
-        Object.keys(configMod).forEach((key) => {
+        Object.keys(configMod).forEach(key => {
           if (key !== "servicesUrls") {
             config[key] = configMod[key];
           }
         });
         config.servicesUrls = modServicesUrls(
           config.servicesUrls,
-          configMod.servicesUrls
+          configMod.servicesUrls,
         );
         res.send({ config, isFirstLaunch });
       } catch (err) {
@@ -76,11 +76,9 @@ export default (router: express.Router) => {
     .post("/config/first-launch", (req, res) => {
       const { isFirstLaunch } = req.body;
       if (isFirstLaunch !== false) {
-        res
-          .status(422)
-          .json({
-            error: { message: "'isFirstLaunch' property not set to 'false'" },
-          });
+        res.status(422).json({
+          error: { message: "'isFirstLaunch' property not set to 'false'" },
+        });
         return;
       }
       fs.writeFileSync(NOT_FIRST_LAUNCH_PATH, "");

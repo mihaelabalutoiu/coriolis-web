@@ -12,7 +12,6 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-import { Field } from "@src/@types/Field";
 import { WizardPage } from "./@types/WizardData";
 
 export type NavigationMenuType = {
@@ -23,8 +22,8 @@ export type NavigationMenuType = {
 };
 export const navigationMenu: NavigationMenuType[] = [
   { label: "Dashboard", value: "dashboard" },
-  { label: "Replicas", value: "replicas" },
-  { label: "Migrations", value: "migrations" },
+  { label: "Transfers", value: "transfers" },
+  { label: "Deployments", value: "deployments" },
   { label: "Cloud Endpoints", value: "endpoints" },
   { label: "Minion Pools", value: "minion-pools" },
   { label: "Bare Metal Servers", value: "bare-metal-servers" },
@@ -40,8 +39,8 @@ export const navigationMenu: NavigationMenuType[] = [
 
 // https://github.com/cloudbase/coriolis/blob/master/coriolis/constants.py
 export const providerTypes = {
-  TARGET_REPLICA: 4,
-  SOURCE_REPLICA: 8,
+  TARGET_TRANSFER: 4,
+  SOURCE_TRANSFER: 8,
   CONNECTION: 16,
   DESTINATION_OPTIONS: 512,
   SOURCE_OPTIONS: 131072,
@@ -64,28 +63,54 @@ export const executionOptions = [
   {
     name: "shutdown_instances",
     type: "boolean",
+    label: "Shutdown Instance(s)",
     defaultValue: false,
     nullableBoolean: false,
+    description:
+      "When enabling this option, Coriolis will attempt to gracefully shut down the source instance(s), before syncing their data. This is recommended when executing Migrations, right before planning on completely Deploying on the destination cloud, as it will transfer the last chunks of data after the instance(s) have been shut down, and it leaves the source instance(s) off.",
+  },
+  {
+    name: "auto_deploy",
+    type: "boolean",
+    label: "Auto Deploy",
+    defaultValue: false,
+    nullableBoolean: false,
+    description:
+      "When enabled, the transfer will automatically deploy the instances on the destination cloud after the transfer is complete.",
   },
 ];
 
-export const migrationFields: Field[] = [
+export const executeOptionsWithExecuteNow = [
+  ...executionOptions,
   {
-    name: "shutdown_instances",
+    name: "execute_now",
     type: "boolean",
-    default: false,
+    label: "Execute Now",
+    defaultValue: true,
     nullableBoolean: false,
     description:
-      "Whether or not Coriolis should power off the source VM before performing the final incremental sync. This guarantees consistency of the exported VM's filesystems, but implies downtime for the source VM during the final sync.",
+      "When enabled, the transfer will be executed immediately after the options are configured.",
+  },
+];
+
+export const deploymentFields = [
+  {
+    name: "clone_disks",
+    type: "boolean",
+    label: "Clone Disks",
+    defaultValue: true,
+    nullableBoolean: false,
+    description:
+      "When enabled, the disks will be cloned during the deployment.",
   },
   {
-    name: "replication_count",
-    type: "integer",
-    minimum: 1,
-    maximum: 10,
-    default: 2,
+    name: "skip_os_morphing",
+    type: "boolean",
+    label: "Skip OS Morphing",
+    defaultValue: false,
+    nullableBoolean: false,
     description:
-      'The number of times to incrementally sync the disks of the source VM. This can be paired with "Shutdown Instances" to allow for the live syncing of the source VM, and shutting it off before the final incremental sync.',
+      "When enabled, OS morphing will be skipped during the deployment.",
   },
 ];
 
@@ -119,8 +144,8 @@ export const wizardPages: WizardPage[] = [
     id: "schedule",
     title: "Schedule",
     breadcrumb: "Schedule",
-    excludeFrom: "migration",
   },
+  { id: "execute", title: "Transfer Execution options", breadcrumb: "Execute" },
   { id: "summary", title: "Summary", breadcrumb: "Summary" },
 ];
 

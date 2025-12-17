@@ -30,12 +30,18 @@ import WizardOptions from "@src/components/modules/WizardModule/WizardOptions";
 import WizardScripts from "@src/components/modules/WizardModule/WizardScripts";
 import WizardStorage from "@src/components/modules/WizardModule/WizardStorage";
 import WizardSummary from "@src/components/modules/WizardModule/WizardSummary";
+import WizardExecuteOptions from "@src/components/modules/WizardModule/WizardExecuteOptions";
 import WizardType from "@src/components/modules/WizardModule/WizardType";
 import { ThemePalette, ThemeProps } from "@src/components/Theme";
 import Button from "@src/components/ui/Button";
 import InfoIcon from "@src/components/ui/InfoIcon";
 import LoadingButton from "@src/components/ui/LoadingButton";
-import { migrationFields, providerTypes, wizardPages } from "@src/constants";
+import {
+  deploymentFields,
+  executeOptionsWithExecuteNow,
+  providerTypes,
+  wizardPages,
+} from "@src/constants";
 import endpointStore from "@src/stores/EndpointStore";
 import instanceStore from "@src/stores/InstanceStore";
 import minionPoolStore from "@src/stores/MinionPoolStore";
@@ -50,6 +56,7 @@ import type { WizardData, WizardPage } from "@src/@types/WizardData";
 import type { Instance, InstanceScript } from "@src/@types/Instance";
 import type { Field } from "@src/@types/Field";
 import type { Schedule as ScheduleType } from "@src/@types/Schedule";
+
 const Wrapper = styled.div<any>`
   ${ThemeProps.exactWidth(`${parseInt(ThemeProps.contentWidth, 10) + 64}px`)}
   margin: 64px auto 32px auto;
@@ -148,18 +155,18 @@ type Props = {
   onDestOptionsChange: (
     field: Field,
     value: any,
-    parentFieldName?: string
+    parentFieldName?: string,
   ) => void;
   onSourceOptionsChange: (
     field: Field,
     value: any,
-    parentFieldName?: string
+    parentFieldName?: string,
   ) => void;
   onNetworkChange: (changeObject: WizardNetworksChangeObject) => void;
   onStorageChange: (mapping: StorageMap) => void;
   onDefaultStorageChange: (
     value: string | null,
-    busType?: string | null
+    busType?: string | null,
   ) => void;
   onAddScheduleClick: (schedule: ScheduleType) => void;
   onScheduleChange: (scheduleId: string, schedule: ScheduleType) => void;
@@ -170,8 +177,9 @@ type Props = {
   onUserScriptUpload: (instanceScript: InstanceScript) => void;
   onCancelUploadedScript: (
     global: string | null,
-    instanceName: string | null
+    instanceName: string | null,
   ) => void;
+  onTransferExecuteOptionsChange: (field: Field, value: any) => void;
 };
 type TimezoneValue = "local" | "utc";
 type State = {
@@ -197,8 +205,8 @@ class WizardPageContent extends React.Component<Props, State> {
 
   getProvidersType(type: string) {
     return type === "source"
-      ? providerTypes.SOURCE_REPLICA
-      : providerTypes.TARGET_REPLICA;
+      ? providerTypes.SOURCE_TRANSFER
+      : providerTypes.TARGET_TRANSFER;
   }
 
   getProviders(direction: string): ProviderTypes[] {
@@ -216,7 +224,7 @@ class WizardPageContent extends React.Component<Props, State> {
       const usableProvider = provider as ProviderTypes;
       if (
         providersObject[usableProvider].types.findIndex(
-          t => t === providerType
+          t => t === providerType,
         ) > -1
       ) {
         validProviders[usableProvider] = true;
@@ -224,7 +232,7 @@ class WizardPageContent extends React.Component<Props, State> {
     });
 
     return this.props.providerStore.providerNames.filter(
-      p => validProviders[p]
+      p => validProviders[p],
     );
   }
 
@@ -376,7 +384,7 @@ class WizardPageContent extends React.Component<Props, State> {
               : this.props.wizardData.target &&
                 this.props.wizardData.target.type;
           return o.name === provider && o.types.find(t => t === type);
-        }
+        },
       );
       let optionsLoadingRequiredFields: string[] = [];
       if (extraOptionsConfig) {
@@ -396,7 +404,7 @@ class WizardPageContent extends React.Component<Props, State> {
       if (endpointStore.storageConfigDefault) {
         const busTypeInfo = EndpointUtils.getBusTypeStorageId(
           endpointStore.storageBackends,
-          endpointStore.storageConfigDefault || null
+          endpointStore.storageConfigDefault || null,
         );
         const defaultStorage: {
           value: string | null;
@@ -451,6 +459,17 @@ class WizardPageContent extends React.Component<Props, State> {
           />
         );
         break;
+      case "execute":
+        body = (
+          <WizardExecuteOptions
+            options={[...executeOptionsWithExecuteNow, ...deploymentFields]}
+            wizardType={`${this.props.type}-execute`}
+            layout="page"
+            data={this.props.wizardData.executeOptions}
+            onChange={this.props.onTransferExecuteOptionsChange}
+          />
+        );
+        break;
       case "vms":
         body = (
           <WizardInstances
@@ -482,7 +501,7 @@ class WizardPageContent extends React.Component<Props, State> {
             minionPools={this.props.minionPoolStore.minionPools.filter(
               m =>
                 m.platform === "source" &&
-                m.endpoint_id === this.props.wizardData.source?.id
+                m.endpoint_id === this.props.wizardData.source?.id,
             )}
             optionsLoading={
               this.props.providerStore.sourceOptionsSecondaryLoading
@@ -514,7 +533,7 @@ class WizardPageContent extends React.Component<Props, State> {
             minionPools={this.props.minionPoolStore.minionPools.filter(
               m =>
                 m.platform === "destination" &&
-                m.endpoint_id === this.props.wizardData.target?.id
+                m.endpoint_id === this.props.wizardData.target?.id,
             )}
             optionsLoading={
               this.props.providerStore.destinationOptionsSecondaryLoading
@@ -522,14 +541,11 @@ class WizardPageContent extends React.Component<Props, State> {
             optionsLoadingSkipFields={[
               ...getOptionsLoadingSkipFields("destination"),
               "title",
-              "execute_now",
-              "execute_now_options",
-              ...migrationFields.map(f => f.name),
             ]}
             selectedInstances={this.props.wizardData.selectedInstances}
             showSeparatePerVm={Boolean(
               this.props.wizardData.selectedInstances &&
-                this.props.wizardData.selectedInstances.length > 1
+                this.props.wizardData.selectedInstances.length > 1,
             )}
             fields={this.props.providerStore.destinationSchema}
             onChange={this.props.onDestOptionsChange}
@@ -549,7 +565,7 @@ class WizardPageContent extends React.Component<Props, State> {
             }-destination`}
             executeNowOptionsDisabled={
               !this.props.providerStore.hasExecuteNowOptions(
-                this.props.wizardData.source!.type
+                this.props.wizardData.source!.type,
               )
             }
           />
@@ -601,7 +617,7 @@ class WizardPageContent extends React.Component<Props, State> {
         body = (
           <Schedule
             disableExecutionOptions={configLoader.config.providersDisabledExecuteOptions.some(
-              p => p === this.props.wizardData.source?.type
+              p => p === this.props.wizardData.source?.type,
             )}
             schedules={this.props.schedules}
             onAddScheduleClick={this.props.onAddScheduleClick}
@@ -628,6 +644,10 @@ class WizardPageContent extends React.Component<Props, State> {
             destinationSchema={this.props.providerStore.destinationSchema}
             uploadedUserScripts={this.props.uploadedUserScripts}
             minionPools={this.props.minionPoolStore.minionPools}
+            executionOptions={[
+              ...executeOptionsWithExecuteNow,
+              ...deploymentFields,
+            ]}
           />
         );
         break;
@@ -643,7 +663,7 @@ class WizardPageContent extends React.Component<Props, State> {
     const targetEndpoint =
       this.props.wizardData.target && this.props.wizardData.target.type;
     const currentPageIndex = wizardPages.findIndex(
-      p => p.id === this.props.page.id
+      p => p.id === this.props.page.id,
     );
     const isLastPage = currentPageIndex === wizardPages.length - 1;
 

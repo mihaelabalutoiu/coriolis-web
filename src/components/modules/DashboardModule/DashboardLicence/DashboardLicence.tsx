@@ -171,7 +171,7 @@ class DashboardLicence extends React.Component<Props> {
         () => !!this.buttonWrapperRef && !!this.licenceLogoRef,
         {
           silent: true,
-        }
+        },
       );
       this.resetLayout();
     };
@@ -202,7 +202,7 @@ class DashboardLicence extends React.Component<Props> {
           current: info.currentPerformedReplicas,
           total: info.currentAvailableReplicas,
           label: "Used Replica",
-          info: `The number of replicas consumed over the number of replicas available in
+          info: `The number of replicas fulfilled over the number of replicas available in
           all currently active licences (including non-activated floating licences)`,
         },
       ],
@@ -212,13 +212,13 @@ class DashboardLicence extends React.Component<Props> {
           current: info.currentPerformedMigrations,
           total: info.currentAvailableMigrations,
           label: "Used Migration",
-          info: `The number of migrations consumed over the number of migrations available in
+          info: `The number of migrations fulfilled over the number of migrations available in
           all currently active licences (including non-activated floating licences)`,
         },
       ],
     ];
     const expirationData = DateUtils.getLocalDate(
-      info.earliestLicenceExpiryDate
+      info.earliestLicenceExpiryDate,
     );
     return (
       <LicenceInfo>
@@ -265,9 +265,9 @@ class DashboardLicence extends React.Component<Props> {
   renderLicenceError() {
     return (
       <LicenceError>
-        {this.props.licenceError?.split("\n").map((str, i) => (
-          <p key={i}>{str}</p>
-        ))}
+        {this.props.licenceError
+          ?.split("\n")
+          .map((str, i) => <p key={i}>{str}</p>)}
       </LicenceError>
     );
   }
@@ -277,8 +277,8 @@ class DashboardLicence extends React.Component<Props> {
     return (
       <LicenceError>
         <p>
-          Please contact Cloudbase Solutions with your Appliance ID in order to
-          obtain a Coriolis® licence.
+          Please contact your Coriolis representative with the Appliance ID in
+          order to obtain a Coriolis® licence.
         </p>
         <ApplianceIdWrapper>
           <ApplianceId>
@@ -325,7 +325,7 @@ class DashboardLicence extends React.Component<Props> {
       } else {
         moduleContent = this.renderLicenceExpired(
           licence,
-          this.props.licenceServerStatus
+          this.props.licenceServerStatus,
         );
       }
     } else if (this.props.loading) {

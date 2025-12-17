@@ -27,91 +27,87 @@ describe("Dashboard", () => {
   };
 
   it("renders empty dashboard", () => {
-    cy.intercept(routeSelectors.REPLICAS, {
-      body: { replicas: [] },
-    }).as("replicas");
-    cy.intercept(routeSelectors.MIGRATIONS, {
-      body: { migrations: [] },
-    }).as("migrations");
+    cy.intercept(routeSelectors.TRANSFERS, {
+      body: { transfers: [] },
+    }).as("transfers");
+    cy.intercept(routeSelectors.DEPLOYMENTS, {
+      body: { deployments: [] },
+    }).as("deployments");
     cy.intercept(routeSelectors.ENDPOINTS, {
       body: { endpoints: [] },
     }).as("endpoints");
 
     cy.visit("/");
     waitForAll();
-    cy.wait(["@replicas", "@migrations", "@endpoints"]);
+    cy.wait(["@transfers", "@deployments", "@endpoints"]);
 
     cy.get("*[class^='DashboardActivity__Message']").should(
       "contain.text",
-      "There is no recent activity"
+      "There is no recent activity",
     );
 
     cy.fixture("licences/appliance-status.json").then(applianceStatus => {
       cy.get("*[class^='DashboardLicence__TopInfoDateTop']").should(
         "contain.text",
         `${DateTime.fromISO(
-          applianceStatus.appliance_licence_status.earliest_licence_expiry_time
+          applianceStatus.appliance_licence_status.earliest_licence_expiry_time,
         )
           .toFormat("LLL |yy")
-          .replace("|", "'")}`
+          .replace("|", "'")}`,
       );
 
       cy.get("*[class^='DashboardLicence__ChartHeaderCurrent']").should(
         "contain.text",
-        `${applianceStatus.appliance_licence_status.current_performed_replicas} Used Replica ${applianceStatus.appliance_licence_status.current_performed_migrations} Used Migrations`
+        `${applianceStatus.appliance_licence_status.current_performed_replicas} Used Replica ${applianceStatus.appliance_licence_status.current_performed_migrations} Used Migrations`,
       );
     });
 
-    cy.get("button").should("contain.text", "New Replica / Migration");
+    cy.get("button").should("contain.text", "New Transfer");
     cy.get("button").should("contain.text", "New Endpoint");
   });
 
   it("renders dashboard with data", () => {
-    cy.intercept(routeSelectors.REPLICAS, {
+    cy.intercept(routeSelectors.TRANSFERS, {
       fixture: "transfers/replicas.json",
-    }).as("replicas");
-    cy.intercept(routeSelectors.MIGRATIONS, {
-      fixture: "transfers/migrations.json",
-    }).as("migrations");
+    }).as("transfers");
     cy.intercept(routeSelectors.ENDPOINTS, {
       fixture: "endpoints/endpoints.json",
     }).as("endpoints");
 
     cy.visit("/");
     waitForAll();
-    cy.wait(["@replicas", "@migrations", "@endpoints"]);
+    cy.wait(["@transfers", "@endpoints"]);
 
     cy.loadFixtures(
-      [
-        "transfers/replicas.json",
-        "transfers/migrations.json",
-        "endpoints/endpoints.json",
-      ],
+      ["transfers/replicas.json", "endpoints/endpoints.json"],
       results => {
-        const [replicasFixture, migrationsFixture, endpointsFixture] = results;
+        const [transfersFixture, endpointsFixture] = results;
+        const replicasCount = transfersFixture.transfers.filter(
+          transfer => transfer.scenario === "replica",
+        ).length;
+        const migrationsCount = transfersFixture.transfers.filter(
+          transfer => transfer.scenario === "live_migration",
+        ).length;
+
         cy.get("div[class^='DashboardInfoCount__CountBlock']").should(
           "contain.text",
-          `${replicasFixture.replicas.length}Replicas${migrationsFixture.migrations.length}Migrations${endpointsFixture.endpoints.length}Endpoints`
+          `${replicasCount}Replicas${migrationsCount}Migrations${endpointsFixture.endpoints.length}Endpoints`,
         );
 
-        const checkItem = (type: "migration" | "replica", item: any) => {
+        const checkItem = (type: "transfer", item: any) => {
           cy.get("div[class^='NotificationDropdown__ItemDescription']").should(
             "contain.text",
             `New ${type} ${item.id.substr(
               0,
-              7
-            )}... status: ${item.last_execution_status.toLowerCase()}`
+              7,
+            )}... status: ${item.last_execution_status.toLowerCase()}`,
           );
         };
 
-        migrationsFixture.migrations.forEach((migration: any) => {
-          checkItem("migration", migration);
+        transfersFixture.transfers.forEach((transfer: any) => {
+          checkItem("transfer", transfer);
         });
-
-        replicasFixture.replicas.forEach((replica: any) => {
-          checkItem("replica", replica);
-        });
-      }
+      },
     );
   });
 });

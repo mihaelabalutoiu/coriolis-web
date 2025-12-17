@@ -20,7 +20,7 @@ import { EndpointUtils, StorageBackend } from "@src/@types/Endpoint";
 import {
   isNetworkMapSecurityGroups,
   isNetworkMapSourceDest,
-  TransferItem,
+  ActionItem,
   TransferNetworkMap,
 } from "@src/@types/MainItem";
 import { MinionPool } from "@src/@types/MinionPool";
@@ -156,7 +156,7 @@ export const ArrowIcon = styled.div`
 `;
 
 export type Props = {
-  item?: TransferItem | null;
+  item?: ActionItem | null;
   instancesDetails: Instance[];
   networks?: Network[];
   minionPools: MinionPool[];
@@ -174,12 +174,12 @@ class TransferDetailsTable extends React.Component<Props, State> {
   getTransferResult(instance: Instance): Instance | null {
     if (this.props.item?.transfer_result) {
       const transferInstanceKey = Object.keys(
-        this.props.item.transfer_result
+        this.props.item.transfer_result,
       ).find(
         k =>
           k === instance.name ||
           k === instance.instance_name ||
-          k === instance.id
+          k === instance.id,
       );
       if (transferInstanceKey) {
         return this.props.item.transfer_result[transferInstanceKey];
@@ -274,13 +274,13 @@ class TransferDetailsTable extends React.Component<Props, State> {
       const mappedDisk = (
         storageMapping?.[storageMappingFieldName] as any
       )?.find(
-        (m: any) => String(m[mappingFieldName]) === String(disk[diskFieldName])
+        (m: any) => String(m[mappingFieldName]) === String(disk[diskFieldName]),
       );
       let destinationName: React.ReactNode;
       let destinationKey: string;
       const defaultBusTypeInfo = EndpointUtils.getBusTypeStorageId(
         this.props.storageBackends,
-        this.props.item?.storage_mappings?.default || null
+        this.props.item?.storage_mappings?.default || null,
       );
 
       if (disk.disabled) {
@@ -299,7 +299,7 @@ class TransferDetailsTable extends React.Component<Props, State> {
       if (mappedDisk) {
         const busTypeInfo = EndpointUtils.getBusTypeStorageId(
           this.props.storageBackends,
-          mappedDisk?.destination
+          mappedDisk?.destination,
         );
 
         destinationName = busTypeInfo.id;
@@ -330,7 +330,7 @@ class TransferDetailsTable extends React.Component<Props, State> {
 
       if (transferResult) {
         const transferDisk = transferResult.devices.disks.find(
-          d => d.storage_backend_identifier === destinationName
+          d => d.storage_backend_identifier === destinationName,
         );
         if (transferDisk) {
           destinationName = transferDisk.name || transferDisk.id;
@@ -338,7 +338,7 @@ class TransferDetailsTable extends React.Component<Props, State> {
           destinationBody = destinationBody.concat(getBody(transferDisk));
         }
       } else if (
-        this.props.item?.type === "migration" &&
+        this.props.item?.type === "deployment" &&
         (this.props.item.last_execution_status === "RUNNING" ||
           this.props.item.last_execution_status ===
             "AWAITING_MINION_ALLOCATIONS")
@@ -356,7 +356,7 @@ class TransferDetailsTable extends React.Component<Props, State> {
           destinationName,
           sourceBody,
           destinationBody,
-        })
+        }),
       );
     });
 
@@ -398,13 +398,13 @@ class TransferDetailsTable extends React.Component<Props, State> {
         const destNetMapObj = destinationNetworkMap[nic.network_name];
         const portKeyInfo = NetworkUtils.getPortKeyNetworkId(
           this.props.networks || [],
-          destNetMapObj as any
+          destNetMapObj as any,
         );
         const destinationNetworkId = isNetworkMapSecurityGroups(destNetMapObj)
           ? destNetMapObj.id
           : portKeyInfo.id;
         const destinationNetwork = this.props.networks?.find(
-          n => n.id === destinationNetworkId
+          n => n.id === destinationNetworkId,
         );
         const sourceBody = getBody(nic);
 
@@ -416,7 +416,7 @@ class TransferDetailsTable extends React.Component<Props, State> {
           const destSecGroupsInfo = destinationNetwork?.security_groups || [];
           const secNames = destNetMapObj.security_groups.map(s => {
             const foundSecGroupInfo = destSecGroupsInfo.find(si =>
-              typeof si === "string" ? si === s : si.id === s
+              typeof si === "string" ? si === s : si.id === s,
             );
             return foundSecGroupInfo &&
               typeof foundSecGroupInfo !== "string" &&
@@ -439,14 +439,14 @@ class TransferDetailsTable extends React.Component<Props, State> {
           const destinationNic = transferResult.devices.nics.find(
             n =>
               n.network_id === destinationNetworkId ||
-              n.network_name === destinationNetworkId
+              n.network_name === destinationNetworkId,
           );
           if (destinationNic) {
             destinationNetworkName = destinationNic.network_name;
             destinationBody = getBody(destinationNic);
           }
         } else if (
-          this.props.item?.type === "migration" &&
+          this.props.item?.type === "deployment" &&
           (this.props.item.last_execution_status === "RUNNING" ||
             this.props.item.last_execution_status ===
               "AWAITING_MINION_ALLOCATIONS")
@@ -462,7 +462,7 @@ class TransferDetailsTable extends React.Component<Props, State> {
             destinationName: destinationNetworkName,
             sourceBody,
             destinationBody,
-          })
+          }),
         );
       }
     });
@@ -490,7 +490,7 @@ class TransferDetailsTable extends React.Component<Props, State> {
       ];
     if (minionPoolId) {
       const minionPool = this.props.minionPools.find(
-        m => m.id === minionPoolId
+        m => m.id === minionPoolId,
       );
       sourceBody.push(`Minion Pool: ${minionPool?.name || minionPoolId}`);
     }
@@ -501,7 +501,7 @@ class TransferDetailsTable extends React.Component<Props, State> {
       destinationName = transferResult.instance_name || transferResult.name;
       destinationBody = getBody(transferResult);
     } else if (
-      this.props.item?.type === "migration" &&
+      this.props.item?.type === "deployment" &&
       (this.props.item.last_execution_status === "RUNNING" ||
         this.props.item.last_execution_status === "AWAITING_MINION_ALLOCATIONS")
     ) {
