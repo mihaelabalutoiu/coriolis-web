@@ -42,6 +42,7 @@ class ProviderSource {
     providerName: ProviderTypes;
     optionsType: "source" | "destination";
     useCache?: boolean | null;
+    forceRefresh?: boolean;
     quietError?: boolean | null;
     requiresWindowsImage?: boolean;
   }): Promise<Field[]> {
@@ -49,6 +50,7 @@ class ProviderSource {
       providerName,
       optionsType,
       useCache,
+      forceRefresh,
       quietError,
       requiresWindowsImage,
     } = opts;
@@ -57,10 +59,16 @@ class ProviderSource {
         ? providerTypes.SOURCE_TRANSFER
         : providerTypes.TARGET_TRANSFER;
 
+    const url = `${configLoader.config.servicesUrls.coriolis}/${Api.projectId}/providers/${providerName}/schemas/${schemaTypeInt}`;
+
+    if (forceRefresh) {
+      Api.removeFromCache(url);
+    }
+
     try {
       const response = await Api.send({
-        url: `${configLoader.config.servicesUrls.coriolis}/${Api.projectId}/providers/${providerName}/schemas/${schemaTypeInt}`,
-        cache: useCache,
+        url,
+        cache: forceRefresh || useCache,
         quietError,
       });
       const schema =
@@ -88,9 +96,10 @@ class ProviderSource {
     endpointId: string;
     envData: { [prop: string]: any } | null | undefined;
     cache?: boolean | null;
+    forceRefresh?: boolean;
     quietError?: boolean;
   }): Promise<OptionValues[]> {
-    const { optionsType, endpointId, envData, cache, quietError } = opts;
+    const { optionsType, endpointId, envData, cache, forceRefresh, quietError } = opts;
     let envString = "";
     if (envData) {
       envString = `?env=${DomUtils.encodeToBase64Url(envData)}`;
@@ -100,9 +109,15 @@ class ProviderSource {
     const fieldName =
       optionsType === "source" ? "source_options" : "destination_options";
 
+    const url = `${configLoader.config.servicesUrls.coriolis}/${Api.projectId}/endpoints/${endpointId}/${callName}${envString}`;
+
+    if (forceRefresh) {
+      Api.removeFromCache(url);
+    }
+
     const response = await Api.send({
-      url: `${configLoader.config.servicesUrls.coriolis}/${Api.projectId}/endpoints/${endpointId}/${callName}${envString}`,
-      cache,
+      url,
+      cache: forceRefresh || cache,
       cancelId: endpointId,
       quietError,
     });

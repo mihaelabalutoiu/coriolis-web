@@ -491,6 +491,7 @@ class WizardPage extends React.Component<Props, State> {
     await providerStore.loadOptionsSchema({
       providerName: endpoint.type,
       optionsType,
+      forceRefresh: true,
       requiresWindowsImage: this.requiresWindowsImage,
     });
     const getSchema = () =>
@@ -503,6 +504,7 @@ class WizardPage extends React.Component<Props, State> {
       optionsType,
       endpointId: endpoint.id,
       providerName: endpoint.type,
+      forceRefresh: true,
       requiresWindowsImage: this.requiresWindowsImage,
     });
     wizardStore.fillWithDefaultValues(optionsType, getSchema());
