@@ -89,6 +89,8 @@ type Props = {
   loading: boolean;
   tasksLoading: boolean;
   instancesDetails: Instance[];
+  hasOlderExecutions?: boolean;
+  onLoadOlderExecutions?: () => void;
   onChange: (executionId: string) => void;
   onCancelExecutionClick: (
     execution: Execution | null,
@@ -105,6 +107,10 @@ class Executions extends React.Component<Props, State> {
   state: State = {
     selectedExecution: null,
   };
+
+  // Set when the user explicitly asks for the previous execution while at the
+  // oldest loaded one; only then should a prepended page move the selection.
+  selectPreviousOnOlderLoad = false;
 
   UNSAFE_componentWillMount() {
     this.setSelectedExecution(this.props);
@@ -145,6 +151,26 @@ class Executions extends React.Component<Props, State> {
             }
           }
         }
+      }
+
+      const prevFirstId =
+        this.props.executions.length > 0
+          ? this.props.executions[0].id
+          : undefined;
+      const newFirstId =
+        props.executions.length > 0 ? props.executions[0].id : undefined;
+      if (
+        props.executions.length > this.props.executions.length &&
+        prevFirstId !== undefined &&
+        prevFirstId !== newFirstId &&
+        !(lastExecution && lastExecution.status === "RUNNING")
+      ) {
+        if (this.selectPreviousOnOlderLoad) {
+          const newCount =
+            props.executions.length - this.props.executions.length;
+          selectExecution = props.executions[newCount - 1];
+        }
+        this.selectPreviousOnOlderLoad = false;
       }
     }
     const currentSelectedExecution = this.state.selectedExecution;
@@ -213,6 +239,10 @@ class Executions extends React.Component<Props, State> {
     );
 
     if (selectedIndex === 0) {
+      if (this.props.hasOlderExecutions && this.props.onLoadOlderExecutions) {
+        this.selectPreviousOnOlderLoad = true;
+        this.props.onLoadOlderExecutions();
+      }
       return;
     }
 
@@ -251,6 +281,14 @@ class Executions extends React.Component<Props, State> {
     this.setState({ selectedExecution: item }, () => {
       this.handleChange(item);
     });
+
+    if (
+      item.id === this.props.executions[0]?.id &&
+      this.props.hasOlderExecutions &&
+      this.props.onLoadOlderExecutions
+    ) {
+      this.props.onLoadOlderExecutions();
+    }
   }
 
   handleCancelExecutionClick() {
@@ -283,6 +321,7 @@ class Executions extends React.Component<Props, State> {
       <Timeline
         items={this.props.executions}
         selectedItem={this.state.selectedExecution}
+        hasOlderItems={this.props.hasOlderExecutions}
         onPreviousClick={() => {
           this.handlePreviousExecutionClick();
         }}
