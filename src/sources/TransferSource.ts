@@ -104,17 +104,29 @@ export class TransferSourceUtils {
 }
 
 class TransferSource {
-  async getTransfers(
-    skipLog?: boolean,
-    quietError?: boolean,
-  ): Promise<TransferItem[]> {
+  async getTransfers(options?: {
+    skipLog?: boolean;
+    quietError?: boolean;
+    limit?: number;
+    marker?: string | null;
+  }): Promise<TransferItem[]> {
+    const params: string[] = [];
+    if (options?.marker) {
+      params.push(`marker=${encodeURIComponent(options.marker)}`);
+    }
+    if (options?.limit !== undefined) {
+      params.push(`limit=${options.limit}`);
+    }
+    const queryString = params.length > 0 ? `?${params.join("&")}` : "";
     const response = await Api.send({
-      url: `${configLoader.config.servicesUrls.coriolis}/${Api.projectId}/transfers`,
-      skipLog,
-      quietError,
+      url: `${configLoader.config.servicesUrls.coriolis}/${Api.projectId}/transfers${queryString}`,
+      skipLog: options?.skipLog,
+      quietError: options?.quietError,
     });
     const transfers: TransferItem[] = response.data.transfers;
-    TransferSourceUtils.sortTransfers(transfers);
+    if (options?.limit === undefined) {
+      TransferSourceUtils.sortTransfers(transfers);
+    }
     return transfers;
   }
 

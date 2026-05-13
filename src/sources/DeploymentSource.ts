@@ -59,13 +59,27 @@ class DeploymentSourceUtils {
 }
 
 class DeploymentSource {
-  async getDeployments(skipLog?: boolean): Promise<DeploymentItem[]> {
+  async getDeployments(options?: {
+    skipLog?: boolean;
+    limit?: number;
+    marker?: string | null;
+  }): Promise<DeploymentItem[]> {
+    const params: string[] = [];
+    if (options?.marker) {
+      params.push(`marker=${encodeURIComponent(options.marker)}`);
+    }
+    if (options?.limit !== undefined) {
+      params.push(`limit=${options.limit}`);
+    }
+    const queryString = params.length > 0 ? `?${params.join("&")}` : "";
     const response = await Api.send({
-      url: `${configLoader.config.servicesUrls.coriolis}/${Api.projectId}/deployments`,
-      skipLog,
+      url: `${configLoader.config.servicesUrls.coriolis}/${Api.projectId}/deployments${queryString}`,
+      skipLog: options?.skipLog,
     });
     const deployments = response.data.deployments;
-    DeploymentSourceUtils.sortDeployments(deployments);
+    if (options?.limit === undefined) {
+      DeploymentSourceUtils.sortDeployments(deployments);
+    }
     return deployments;
   }
 
