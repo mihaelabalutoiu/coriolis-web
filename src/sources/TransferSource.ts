@@ -161,6 +161,7 @@ class TransferSource {
     options?: {
       limit?: number;
       marker?: string | null;
+      quietError?: boolean;
     },
   ): Promise<Execution[]> {
     const params: string[] = [];
@@ -173,6 +174,7 @@ class TransferSource {
     const queryString = params.length > 0 ? `?${params.join("&")}` : "";
     const response = await Api.send({
       url: `${configLoader.config.servicesUrls.coriolis}/${Api.projectId}/transfers/${transferId}/executions${queryString}`,
+      quietError: options?.quietError,
     });
     const executions: Execution[] = response.data.executions;
     return TransferSourceUtils.filterDeletedExecutions(executions);

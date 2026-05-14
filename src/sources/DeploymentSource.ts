@@ -61,6 +61,7 @@ class DeploymentSourceUtils {
 class DeploymentSource {
   async getDeployments(options?: {
     skipLog?: boolean;
+    quietError?: boolean;
     limit?: number;
     marker?: string | null;
   }): Promise<DeploymentItem[]> {
@@ -75,6 +76,7 @@ class DeploymentSource {
     const response = await Api.send({
       url: `${configLoader.config.servicesUrls.coriolis}/${Api.projectId}/deployments${queryString}`,
       skipLog: options?.skipLog,
+      quietError: options?.quietError,
     });
     const deployments = response.data.deployments;
     if (options?.limit === undefined) {
