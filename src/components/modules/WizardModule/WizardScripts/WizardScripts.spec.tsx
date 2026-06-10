@@ -41,12 +41,10 @@ describe("WizardScripts", () => {
     expect(getAllByText("Choose Scripts").length).toBeGreaterThan(0);
   });
 
-  it("offers 'Edit Scripts' with Download/Remove for a configured target", () => {
-    const onScriptsChange = jest.fn();
-    const { getByText } = render(
+  it("offers 'Edit Scripts' for a configured target and 'Choose Scripts' otherwise", () => {
+    const { getByText, getAllByText } = render(
       <WizardScripts
         {...defaultProps}
-        onScriptsChange={onScriptsChange}
         userScriptData={{
           global: {
             linux: [
@@ -57,16 +55,11 @@ describe("WizardScripts", () => {
         }}
       />,
     );
+    // The configured (linux) target reads "Edit Scripts"; the unconfigured
+    // windows + instance targets still read "Choose Scripts". All script
+    // management now lives inside the modal.
     expect(getByText("Edit Scripts")).toBeTruthy();
-    expect(getByText("Download")).toBeTruthy();
-
-    // Remove clears all phases for the target (sends [] with hadExisting=true).
-    fireEvent.click(getByText("Remove"));
-    expect(onScriptsChange).toHaveBeenCalledWith(
-      { global: "linux", instanceId: null },
-      [],
-      true,
-    );
+    expect(getAllByText("Choose Scripts").length).toBe(2);
   });
 
   it("opens the per-phase modal showing all three phases", () => {

@@ -16,6 +16,8 @@ import React from "react";
 
 import { fireEvent, render } from "@testing-library/react";
 
+import DomUtils from "@src/utils/DomUtils";
+
 import UserScriptsModal from "./UserScriptsModal";
 
 describe("UserScriptsModal", () => {
@@ -91,6 +93,15 @@ describe("UserScriptsModal", () => {
     expect(getByText("saved.sh")).toBeTruthy();
     // Only 2 of the 3 phases are empty.
     expect(getAllByText("Choose File...").length).toBe(2);
+
+    // A configured phase can be downloaded (content is available even when the
+    // file name isn't, e.g. API-loaded scripts).
+    const downloadSpy = jest
+      .spyOn(DomUtils, "download")
+      .mockImplementation(() => {});
+    fireEvent.click(getByText("Download"));
+    expect(downloadSpy).toHaveBeenCalledWith("echo saved", "saved.sh");
+    downloadSpy.mockRestore();
 
     fireEvent.click(getByText("Remove"));
     expect(getAllByText("Choose File...").length).toBe(3);

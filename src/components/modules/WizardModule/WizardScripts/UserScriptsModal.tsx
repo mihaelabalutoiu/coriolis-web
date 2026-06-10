@@ -18,6 +18,7 @@ import styled from "styled-components";
 import { ThemePalette, ThemeProps } from "@src/components/Theme";
 import Button from "@src/components/ui/Button";
 import InfoIcon from "@src/components/ui/InfoIcon";
+import DomUtils from "@src/utils/DomUtils";
 import FileUtils from "@src/utils/FileUtils";
 
 import type { InstanceScript } from "@src/@types/Instance";
@@ -137,6 +138,15 @@ class UserScriptsModal extends React.Component<Props, State> {
     }
   }
 
+  handleDownload(phase: UserScriptPhase) {
+    const entry = this.state.scriptsByPhase[phase];
+    if (!entry?.content) {
+      return;
+    }
+    const baseName = this.props.global || this.props.instanceId || "script";
+    DomUtils.download(entry.content, entry.fileName || `${baseName}_${phase}`);
+  }
+
   handleSave() {
     const scripts: InstanceScript[] = USER_SCRIPT_PHASES.reduce<
       InstanceScript[]
@@ -176,6 +186,12 @@ class UserScriptsModal extends React.Component<Props, State> {
                     <FileName title={entry?.fileName || "Script selected"}>
                       {entry?.fileName || "Script selected"}
                     </FileName>
+                    <ActionLink
+                      style={{ marginRight: "16px" }}
+                      onClick={() => this.handleDownload(phase)}
+                    >
+                      Download
+                    </ActionLink>
                     <ActionLink red onClick={() => this.handleRemove(phase)}>
                       Remove
                     </ActionLink>

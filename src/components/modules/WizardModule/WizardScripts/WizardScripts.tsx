@@ -22,7 +22,6 @@ import { ThemePalette, ThemeProps } from "@src/components/Theme";
 import InfoIcon from "@src/components/ui/InfoIcon";
 import Modal from "@src/components/ui/Modal";
 import StatusIcon from "@src/components/ui/StatusComponents/StatusIcon";
-import DomUtils from "@src/utils/DomUtils";
 
 import scriptItemImage from "./images/script-item.svg";
 import UserScriptsModal, { ScriptsByPhase } from "./UserScriptsModal";
@@ -136,23 +135,6 @@ const LinkButton = styled.div<any>`
     text-decoration: underline;
   }
 `;
-const Actions = styled.div<any>`
-  display: flex;
-  margin-top: 1px;
-`;
-const ActionLink = styled.div<{ red?: boolean }>`
-  color: ${props => (props.red ? ThemePalette.alert : ThemePalette.primary)};
-  font-size: 14px;
-  cursor: pointer;
-  margin-right: 16px;
-  :hover {
-    text-decoration: underline;
-  }
-  &:last-child {
-    margin-right: 0;
-  }
-`;
-
 type ModalTarget = UserScriptTarget & { title: string };
 
 type Props = {
@@ -235,28 +217,6 @@ class WizardScripts extends React.Component<Props, State> {
     this.setState({ modalTarget: null });
   }
 
-  handleDownload(target: UserScriptTarget, title: string) {
-    const map = this.getScriptsByPhase(target);
-    const baseName = target.global || target.instanceId || title;
-    USER_SCRIPT_PHASES.forEach(phase => {
-      const entry = map[phase];
-      if (entry?.content) {
-        DomUtils.download(
-          entry.content,
-          entry.fileName || `${baseName}_${phase}`,
-        );
-      }
-    });
-  }
-
-  clearTarget(target: UserScriptTarget) {
-    this.props.onScriptsChange(
-      { global: target.global, instanceId: target.instanceId },
-      [],
-      this.computeHadExisting(target),
-    );
-  }
-
   renderScriptItem(opts: {
     global?: "windows" | "linux";
     instanceId?: string;
@@ -279,16 +239,6 @@ class WizardScripts extends React.Component<Props, State> {
             {subtitle ? (
               <NameLabelSubtitle>{subtitle}</NameLabelSubtitle>
             ) : null}
-            {isConfigured ? (
-              <Actions>
-                <ActionLink onClick={() => this.handleDownload(target, title)}>
-                  Download
-                </ActionLink>
-                <ActionLink red onClick={() => this.clearTarget(target)}>
-                  Remove
-                </ActionLink>
-              </Actions>
-            ) : null}
           </NameLabel>
         </Name>
         <LinkButton
@@ -310,7 +260,7 @@ class WizardScripts extends React.Component<Props, State> {
             Global Scripts
             <InfoIconStyled
               layout={this.props.layout}
-              text="Specify user scripts that will run during OS morphing for a particular OS type"
+              text="Specify user scripts that will run during OS morphing for a particular OS type. You can attach one script per phase."
             />
           </Heading>
           <Scripts>
@@ -338,7 +288,7 @@ class WizardScripts extends React.Component<Props, State> {
           {!this.props.loadingInstances ? (
             <InfoIconStyled
               layout={this.props.layout}
-              text="Specify user scripts that will run during OS morphing for a particular instance. These override the uploaded global scripts."
+              text="Specify user scripts that will run during OS morphing for a particular instance. You can attach one script per phase. These override the uploaded global scripts."
             />
           ) : null}
           {this.props.loadingInstances ? (
