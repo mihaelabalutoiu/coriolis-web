@@ -19,6 +19,7 @@ import type { OptionValues, StorageMap } from "@src/@types/Endpoint";
 import type { SchemaProperties, SchemaDefinitions } from "@src/@types/Schema";
 import type { NetworkMap } from "@src/@types/Network";
 import type { InstanceScript } from "@src/@types/Instance";
+import { DEFAULT_USER_SCRIPT_PHASE } from "@src/@types/Instance";
 import { executionOptions } from "@src/constants";
 import { UserScriptData } from "@src/@types/MainItem";
 import { defaultSchemaToFields } from "./ConnectionSchemaPlugin";
@@ -378,15 +379,27 @@ export default class OptionsSchemaParserBase {
   ) {
     const payload: any = userScriptData || {};
 
-    const setPayload = (
+    const setRemoved = (
       scripts: InstanceScript[],
       scriptProp: "global" | "instanceId",
       payloadProp: "global" | "instances",
     ) => {
-      if (!scripts.length) {
-        return;
-      }
-      payload[payloadProp] = payload[payloadProp] || {};
+      scripts.forEach(script => {
+        const scriptValue = script[scriptProp];
+        if (!scriptValue) {
+          return;
+        }
+        payload[payloadProp] = payload[payloadProp] || {};
+        payload[payloadProp][scriptValue] = null;
+      });
+    };
+
+    const setUploaded = (
+      scripts: InstanceScript[],
+      scriptProp: "global" | "instanceId",
+      payloadProp: "global" | "instances",
+    ) => {
+      const byTarget: { [target: string]: InstanceScript[] } = {};
       scripts.forEach(script => {
         const scriptValue = script[scriptProp];
         if (!scriptValue) {
@@ -394,26 +407,37 @@ export default class OptionsSchemaParserBase {
             `The uploaded script structure is missing the '${scriptProp}' property`,
           );
         }
-        payload[payloadProp][scriptValue] = script.scriptContent;
+        byTarget[scriptValue] = byTarget[scriptValue] || [];
+        byTarget[scriptValue].push(script);
+      });
+      Object.keys(byTarget).forEach(scriptValue => {
+        payload[payloadProp] = payload[payloadProp] || {};
+        const entries = byTarget[scriptValue]
+          .filter(s => s.scriptContent != null && s.scriptContent.trim() !== "")
+          .map(s => ({
+            phase: s.phase || DEFAULT_USER_SCRIPT_PHASE,
+            payload: s.scriptContent,
+          }));
+        payload[payloadProp][scriptValue] = entries.length ? entries : null;
       });
     };
 
-    setPayload(
+    setRemoved(
       removedUserScripts.filter(s => s.global),
       "global",
       "global",
     );
-    setPayload(
+    setRemoved(
       removedUserScripts.filter(s => s.instanceId),
       "instanceId",
       "instances",
     );
-    setPayload(
+    setUploaded(
       uploadedUserScripts.filter(s => s.global),
       "global",
       "global",
     );
-    setPayload(
+    setUploaded(
       uploadedUserScripts.filter(s => s.instanceId),
       "instanceId",
       "instances",

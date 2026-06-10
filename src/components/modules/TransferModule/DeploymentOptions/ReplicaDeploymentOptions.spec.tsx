@@ -34,16 +34,24 @@ jest.mock("@src/components/modules/WizardModule/WizardScripts", () => ({
       <div
         data-testid="ScriptsRemove"
         onClick={() => {
-          props.onScriptDataRemove(props.uploadedScripts[0]);
+          props.onScriptsChange(
+            { global: "windows", instanceId: null },
+            [],
+            true,
+          );
         }}
       />
       <div data-testid="ScriptsRemoved">
-        {props.removedScripts.map(s => s.scriptContent).join(", ")}
+        {props.removedScripts.map(s => s.global || s.instanceId).join(", ")}
       </div>
       <div
         data-testid="ScriptsCancel"
         onClick={() => {
-          props.onCancelScript("windows", null);
+          props.onScriptsChange(
+            { global: "windows", instanceId: null },
+            [],
+            false,
+          );
           props.scrollableRef &&
             props.scrollableRef(null as any as HTMLElement);
         }}
@@ -51,11 +59,18 @@ jest.mock("@src/components/modules/WizardModule/WizardScripts", () => ({
       <div
         data-testid="ScriptsUpload"
         onClick={() => {
-          props.onScriptUpload({
-            scriptContent: `script-content-${Math.random()}`,
-            fileName: `script-name.ps1`,
-            global: "windows",
-          });
+          props.onScriptsChange(
+            { global: "windows", instanceId: null },
+            [
+              {
+                scriptContent: `script-content-${Math.random()}`,
+                fileName: `script-name.ps1`,
+                global: "windows",
+                phase: "osmorphing_post_os_mount",
+              },
+            ],
+            false,
+          );
         }}
       />
     </div>
@@ -123,10 +138,10 @@ describe("ReplicaDeploymentOptions", () => {
       "script-content",
     );
     expect(getByTestId("ScriptsRemoved").textContent).toBe("");
+    // Clearing a target that had existing scripts unregisters it.
     fireEvent.click(getByTestId("ScriptsRemove"));
-    expect(getByTestId("ScriptsRemoved").textContent).toContain(
-      "script-content",
-    );
+    expect(getByTestId("ScriptsUploaded").textContent).toBe("");
+    expect(getByTestId("ScriptsRemoved").textContent).toContain("windows");
   });
 
   it("doesn't render minion pool mappings", () => {
