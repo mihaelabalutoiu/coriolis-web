@@ -337,6 +337,20 @@ class TransferSource {
         );
     }
 
+    // TEMP DEBUG: inspect the exact transfer update payload (esp. user_scripts).
+    // eslint-disable-next-line no-console
+    console.log(
+      "[TEMP] transfer update PUT payload:",
+      JSON.stringify(payload, null, 2),
+    );
+    // eslint-disable-next-line no-console
+    console.log(
+      "[TEMP] uploadedScripts:",
+      JSON.stringify(updateData.uploadedScripts),
+      "removedScripts:",
+      JSON.stringify(updateData.removedScripts),
+    );
+
     const response = await Api.send({
       url: `${configLoader.config.servicesUrls.coriolis}/${Api.projectId}/transfers/${transfer.id}`,
       method: "PUT",

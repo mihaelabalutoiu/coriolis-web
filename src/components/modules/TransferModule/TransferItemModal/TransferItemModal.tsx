@@ -951,9 +951,20 @@ class TransferItemModal extends React.Component<Props, State> {
   }
 
   renderUserScripts() {
+    // When editing a transfer that hasn't collected VM info yet (typically an
+    // unexecuted migration), instancesDetails is empty. Fall back to the
+    // transfer's instance identifiers so the Instance Scripts section still
+    // appears (the OS/CPU/RAM subtitle is omitted until info is collected).
+    const instances =
+      this.props.instancesDetails?.length || this.props.instancesDetailsLoading
+        ? this.props.instancesDetails
+        : (this.props.transfer?.instances || []).map(
+            name =>
+              ({ id: name, name, instance_name: name }) as unknown as Instance,
+          );
     return (
       <WizardScripts
-        instances={this.props.instancesDetails}
+        instances={instances}
         loadingInstances={this.props.instancesDetailsLoading}
         onScriptsChange={(target, scripts, hadExisting) => {
           this.handleScriptsChange(target, scripts, hadExisting);

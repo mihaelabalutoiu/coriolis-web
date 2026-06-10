@@ -309,8 +309,20 @@ class WizardScripts extends React.Component<Props, State> {
                   ? "Linux"
                   : instance.os_type
               : "";
-            const osType = osLabel ? `${osLabel} OS | ` : "";
-            const subtitle = `${osType}${instance.num_cpu} vCPU | ${instance.memory_mb} MB RAM`;
+            // Build the spec line from whatever details are available. For a
+            // transfer that hasn't collected VM info yet (e.g. an unexecuted
+            // migration), CPU/RAM/OS are unknown, so we just show the name.
+            const specParts: string[] = [];
+            if (osLabel) {
+              specParts.push(`${osLabel} OS`);
+            }
+            if (instance.num_cpu != null) {
+              specParts.push(`${instance.num_cpu} vCPU`);
+            }
+            if (instance.memory_mb != null) {
+              specParts.push(`${instance.memory_mb} MB RAM`);
+            }
+            const subtitle = specParts.join(" | ");
 
             return this.renderScriptItem({ instanceId: id, title, subtitle });
           })}
