@@ -297,13 +297,68 @@ describe("Executions", () => {
     expect(onLoadOlderExecutions).toHaveBeenCalled();
   });
 
-  it("navigates to newest of prepended older executions after load", () => {
-    const { rerender } = render(<Executions {...defaultProps} />);
+  it("navigates to newest of prepended older executions after previous arrow click", async () => {
+    const onLoadOlderExecutions = jest.fn();
+    const { rerender } = render(
+      <Executions
+        {...defaultProps}
+        hasOlderExecutions
+        onLoadOlderExecutions={onLoadOlderExecutions}
+      />,
+    );
+    const previousArrow = TestUtils.selectAll(
+      "Arrow__Wrapper",
+      TestUtils.select("Timeline__Wrapper")!,
+    )[0];
+    await act(async () => {
+      previousArrow.click();
+    });
+    expect(onLoadOlderExecutions).toHaveBeenCalled();
+
     const olderExec = { ...EXECUTION_MOCK, id: "older-id", number: 0 };
     rerender(
-      <Executions {...defaultProps} executions={[olderExec, EXECUTION_MOCK]} />,
+      <Executions
+        {...defaultProps}
+        executions={[olderExec, EXECUTION_MOCK]}
+        hasOlderExecutions
+        onLoadOlderExecutions={onLoadOlderExecutions}
+      />,
     );
     expect(defaultProps.onChange).toHaveBeenLastCalledWith(olderExec.id);
+  });
+
+  it("keeps the clicked execution selected when older executions are prepended", async () => {
+    const onLoadOlderExecutions = jest.fn();
+    const newerExec = { ...EXECUTION_MOCK, id: "newer-id", number: 2 };
+    const { rerender } = render(
+      <Executions
+        {...defaultProps}
+        executions={[EXECUTION_MOCK, newerExec]}
+        hasOlderExecutions
+        onLoadOlderExecutions={onLoadOlderExecutions}
+      />,
+    );
+    const oldestBullet = TestUtils.select("Timeline__Item-");
+    expect(oldestBullet).toBeTruthy();
+    await act(async () => {
+      oldestBullet!.click();
+    });
+    expect(onLoadOlderExecutions).toHaveBeenCalled();
+    expect(defaultProps.onChange).toHaveBeenLastCalledWith(EXECUTION_MOCK.id);
+
+    const olderExecs = [
+      { ...EXECUTION_MOCK, id: "older-id-1", number: -1 },
+      { ...EXECUTION_MOCK, id: "older-id-2", number: 0 },
+    ];
+    rerender(
+      <Executions
+        {...defaultProps}
+        executions={[...olderExecs, EXECUTION_MOCK, newerExec]}
+        hasOlderExecutions
+        onLoadOlderExecutions={onLoadOlderExecutions}
+      />,
+    );
+    expect(defaultProps.onChange).toHaveBeenLastCalledWith(EXECUTION_MOCK.id);
   });
 
   it("deletes execution", async () => {

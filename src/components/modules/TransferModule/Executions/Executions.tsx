@@ -108,6 +108,10 @@ class Executions extends React.Component<Props, State> {
     selectedExecution: null,
   };
 
+  // Set when the user explicitly asks for the previous execution while at the
+  // oldest loaded one; only then should a prepended page move the selection.
+  selectPreviousOnOlderLoad = false;
+
   UNSAFE_componentWillMount() {
     this.setSelectedExecution(this.props);
   }
@@ -161,8 +165,12 @@ class Executions extends React.Component<Props, State> {
         prevFirstId !== newFirstId &&
         !(lastExecution && lastExecution.status === "RUNNING")
       ) {
-        const newCount = props.executions.length - this.props.executions.length;
-        selectExecution = props.executions[newCount - 1];
+        if (this.selectPreviousOnOlderLoad) {
+          const newCount =
+            props.executions.length - this.props.executions.length;
+          selectExecution = props.executions[newCount - 1];
+        }
+        this.selectPreviousOnOlderLoad = false;
       }
     }
     const currentSelectedExecution = this.state.selectedExecution;
@@ -232,6 +240,7 @@ class Executions extends React.Component<Props, State> {
 
     if (selectedIndex === 0) {
       if (this.props.hasOlderExecutions && this.props.onLoadOlderExecutions) {
+        this.selectPreviousOnOlderLoad = true;
         this.props.onLoadOlderExecutions();
       }
       return;
