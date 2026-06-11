@@ -92,6 +92,9 @@ class TransferStore {
 
   executionsPageSize = 10;
 
+  // Deleted execution ids, kept so a stale polling response can't re-add them
+  private deletedExecutionIds: Set<string> = new Set();
+
   @action resetTransferPagination(): void {
     this.transfersPage = 1;
     this.transfersHasNextPage = false;
@@ -288,6 +291,7 @@ class TransferStore {
           const incoming = transfer.executions.filter(
             e =>
               e.number > newestNumber &&
+              !this.deletedExecutionIds.has(e.id) &&
               !this.executionsList.find(l => l.id === e.id),
           );
           if (incoming.length > 0) {
@@ -300,6 +304,7 @@ class TransferStore {
           const withTasks = exec as ExecutionTasks;
           if (
             Array.isArray(withTasks.tasks) &&
+            !this.deletedExecutionIds.has(exec.id) &&
             !this.executionsTasks.find(et => et.id === exec.id)
           ) {
             sortTasks(withTasks.tasks, TransferSourceUtils.sortTaskUpdates);
@@ -318,6 +323,7 @@ class TransferStore {
     this.transferDetails = null;
     this.currentlyLoadingExecution = "";
     this.executionsTasks = [];
+    this.deletedExecutionIds.clear();
   }
 
   @action getTransfersSuccess(
@@ -462,6 +468,7 @@ class TransferStore {
   }
 
   @action deleteExecutionSuccess(transferId: string, executionId: string) {
+    this.deletedExecutionIds.add(executionId);
     let executions = [];
 
     if (this.transferDetails?.id === transferId) {
