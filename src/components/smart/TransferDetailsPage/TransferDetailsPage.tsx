@@ -365,6 +365,17 @@ class TransferDetailsPage extends React.Component<Props, State> {
     this.setState({ dbInstancesDetails: instancesDetails });
   }
 
+  populateInstanceDetails() {
+    const transfer = this.transfer;
+    if (
+      transfer &&
+      !this.state.dbInstancesDetails.length &&
+      this.hasStoredVmInfo(transfer.info)
+    ) {
+      this.populateInstanceStoreFromTransferInfo(transfer.info);
+    }
+  }
+
   isExecuteDisabled() {
     const transfer = this.transfer;
     if (!transfer) {
@@ -471,10 +482,14 @@ class TransferDetailsPage extends React.Component<Props, State> {
   }
 
   handleCreateDeploymentClick() {
+    // Opening the modal pauses polling, so derive instance details now in case
+    // they only became available after an execution collected the VM info.
+    this.populateInstanceDetails();
     this.setState({ showDeploymentModal: true, pausePolling: true });
   }
 
   handleTransferEditClick() {
+    this.populateInstanceDetails();
     this.setState({ showEditModal: true, pausePolling: true });
   }
 
@@ -633,6 +648,7 @@ class TransferDetailsPage extends React.Component<Props, State> {
         }
       })(),
     ]);
+    this.populateInstanceDetails();
 
     setTimeout(() => {
       this.pollData();
