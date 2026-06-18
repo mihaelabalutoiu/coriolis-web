@@ -16,7 +16,6 @@ import { observable, action, runInAction } from "mobx";
 
 import TransferSource, {
   TransferSourceUtils,
-  sortTasks,
 } from "@src/sources/TransferSource";
 import type {
   UpdateData,
@@ -68,7 +67,7 @@ class TransferStore {
 
   @observable startingExecution = false;
 
-  @observable transfersWithDisks: TransferItemDetails[] = [];
+  @observable transfersWithDisks: TransferItem[] = [];
 
   @observable transfersWithDisksLoading = false;
 
@@ -268,48 +267,55 @@ class TransferStore {
         includeTaskInfo,
       });
 
+      // The transfer payload no longer embeds its executions, so refresh the
+      // most recent page from the dedicated executions endpoint to keep the
+      // timeline statuses live during polling and to surface newly started
+      // executions. Only needed once the executions list has been loaded.
+      let freshExecutions: Execution[] | null = null;
+      if (this.executionsList.length > 0) {
+        try {
+          freshExecutions = await TransferSource.getExecutions(transferId, {
+            limit: this.executionsPageSize,
+            quietError: polling,
+          });
+          TransferSourceUtils.sortExecutions(freshExecutions);
+        } catch (err) {
+          console.error(err);
+        }
+      }
+
       runInAction(() => {
         this.transferDetails = transfer;
-        let statusChanged = false;
-        const updatedList = this.executionsList.map(e => {
-          const fresh = transfer.executions?.find(te => te.id === e.id);
-          if (fresh && fresh.status !== e.status) {
-            statusChanged = true;
-            return { ...e, status: fresh.status };
-          }
-          return e;
-        });
-        if (statusChanged) {
-          this.executionsList = updatedList;
-        }
 
-        if (this.executionsList.length > 0 && transfer.executions?.length) {
-          const newestNumber = Math.max(
-            ...this.executionsList.map(e => e.number),
-          );
-          const incoming = transfer.executions.filter(
-            e =>
-              e.number > newestNumber &&
-              !this.deletedExecutionIds.has(e.id) &&
-              !this.executionsList.find(l => l.id === e.id),
-          );
-          if (incoming.length > 0) {
-            TransferSourceUtils.sortExecutions(incoming);
-            this.executionsList = [...this.executionsList, ...incoming];
+        if (freshExecutions) {
+          let statusChanged = false;
+          const updatedList = this.executionsList.map(e => {
+            const fresh = freshExecutions!.find(te => te.id === e.id);
+            if (fresh && fresh.status !== e.status) {
+              statusChanged = true;
+              return { ...e, status: fresh.status };
+            }
+            return e;
+          });
+          if (statusChanged) {
+            this.executionsList = updatedList;
+          }
+
+          if (this.executionsList.length > 0) {
+            const newestNumber = Math.max(
+              ...this.executionsList.map(e => e.number),
+            );
+            const incoming = freshExecutions.filter(
+              e =>
+                e.number > newestNumber &&
+                !this.deletedExecutionIds.has(e.id) &&
+                !this.executionsList.find(l => l.id === e.id),
+            );
+            if (incoming.length > 0) {
+              this.executionsList = [...this.executionsList, ...incoming];
+            }
           }
         }
-
-        transfer.executions?.forEach(exec => {
-          const withTasks = exec as ExecutionTasks;
-          if (
-            Array.isArray(withTasks.tasks) &&
-            !this.deletedExecutionIds.has(exec.id) &&
-            !this.executionsTasks.find(et => et.id === exec.id)
-          ) {
-            sortTasks(withTasks.tasks, TransferSourceUtils.sortTaskUpdates);
-            this.executionsTasks = [...this.executionsTasks, withTasks];
-          }
-        });
       });
     } finally {
       runInAction(() => {
@@ -534,14 +540,17 @@ class TransferStore {
     await TransferSource.update(options);
   }
 
-  testTransferHasDisks(transfer: TransferItemDetails | null) {
-    if (!transfer || !transfer.executions || transfer.executions.length === 0) {
+  // NOTE: executions are no longer embedded on the transfer payload, so callers
+  // must pass the executions fetched from the dedicated endpoint, sorted
+  // ascending by number (so the last element is the most recent).
+  testTransferHasDisks(executions: Execution[]) {
+    if (!executions || executions.length === 0) {
       return false;
     }
-    if (!transfer.executions.find(e => e.type === "transfer_execution")) {
+    if (!executions.find(e => e.type === "transfer_execution")) {
       return false;
     }
-    const lastExecution = transfer.executions[transfer.executions.length - 1];
+    const lastExecution = executions[executions.length - 1];
     if (
       lastExecution.type === "transfer_disks_delete" &&
       lastExecution.status === "COMPLETED"
@@ -556,19 +565,24 @@ class TransferStore {
     this.transfersWithDisksLoading = true;
 
     try {
-      const transferDetails = await Promise.all(
-        transfers.map(transfer =>
-          TransferSource.getTransferDetails({
-            transferId: transfer.id,
-            includeTaskInfo: true,
-          }),
-        ),
+      // Executions are no longer embedded on the transfer payload; fetch the
+      // most recent page per transfer from the dedicated endpoint to determine
+      // which ones still have disks.
+      const results = await Promise.all(
+        transfers.map(async transfer => {
+          const executions = await TransferSource.getExecutions(transfer.id, {
+            limit: this.executionsPageSize,
+            quietError: true,
+          });
+          TransferSourceUtils.sortExecutions(executions);
+          return { transfer, hasDisks: this.testTransferHasDisks(executions) };
+        }),
       );
 
       runInAction(() => {
-        this.transfersWithDisks = transferDetails.filter(r =>
-          this.testTransferHasDisks(r),
-        );
+        this.transfersWithDisks = results
+          .filter(r => r.hasDisks)
+          .map(r => r.transfer);
       });
     } finally {
       runInAction(() => {

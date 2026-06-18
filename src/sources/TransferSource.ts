@@ -218,12 +218,13 @@ class TransferSource {
     let lastExecutionId = options.executionId;
 
     if (!lastExecutionId) {
-      const transferDetails = await this.getTransferDetails({
-        transferId: options.transferId,
+      // Executions are no longer embedded on the transfer payload; fetch the
+      // most recent one from the dedicated executions endpoint.
+      const executions = await this.getExecutions(options.transferId, {
+        limit: 1,
       });
-      const lastExecution =
-        transferDetails.executions[transferDetails.executions.length - 1];
-      if (lastExecution.status !== "RUNNING") {
+      const lastExecution = executions[0];
+      if (!lastExecution || lastExecution.status !== "RUNNING") {
         return options.transferId;
       }
       lastExecutionId = lastExecution.id;

@@ -221,14 +221,20 @@ class TransferDetailsPage extends React.Component<Props, State> {
   }
 
   getLastExecution() {
-    if (this.transfer?.executions?.length) {
-      return this.transfer.executions[this.transfer.executions.length - 1];
+    // The transfer payload no longer embeds its executions; the latest one is
+    // derived from the paginated executions list (sorted ascending by number,
+    // so the last element is the most recent).
+    const executions = transferStore.executionsList;
+    if (executions.length) {
+      return executions[executions.length - 1];
     }
     return null;
   }
 
   getStatus() {
-    return this.getLastExecution()?.status;
+    // Prefer the denormalized status carried on the transfer itself, which is
+    // always present even before the executions list has loaded.
+    return this.transfer?.last_execution_status || this.getLastExecution()?.status;
   }
 
   getTransferItemType(): string {
@@ -978,7 +984,9 @@ class TransferDetailsPage extends React.Component<Props, State> {
         />
         {this.state.showDeleteTransferConfirmation ? (
           <DeleteTransferModal
-            hasDisks={transferStore.testTransferHasDisks(this.transfer)}
+            hasDisks={transferStore.testTransferHasDisks(
+              transferStore.executionsList,
+            )}
             onRequestClose={() => this.handleCloseDeleteTransferConfirmation()}
             onDeleteTransfer={() => {
               this.handleDeleteTransferConfirmation();
