@@ -429,15 +429,16 @@ class Executions extends React.Component<Props, State> {
       return null;
     }
 
+    const selectedTasks =
+      this.props.executionsTasks.find(
+        e => e.id === this.state.selectedExecution?.id,
+      )?.tasks || [];
+
     return (
       <Tasks
         loading={this.props.tasksLoading}
         instancesDetails={this.props.instancesDetails}
-        items={
-          this.props.executionsTasks.find(
-            e => e.id === this.state.selectedExecution?.id,
-          )?.tasks || []
-        }
+        items={selectedTasks}
       />
     );
   }

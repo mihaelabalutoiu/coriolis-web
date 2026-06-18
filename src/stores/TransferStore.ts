@@ -130,6 +130,8 @@ class TransferStore {
         this.executionsHasOlderPage = hasOlderPage;
         this.executionsLoading = false;
       });
+      // Warm the cache for this page so clicking the bullets is instant.
+      this.prefetchExecutionsTasks(raw);
     } catch (err) {
       runInAction(() => {
         this.executionsLoading = false;
@@ -169,7 +171,10 @@ class TransferStore {
         this.executionsHasOlderPage = hasOlderPage;
         this.executionsPaginationLoading = false;
       });
+      // Warm the cache for the newly loaded older page.
+      this.prefetchExecutionsTasks(raw);
     } catch (err) {
+      console.error(err);
       runInAction(() => {
         this.executionsHasOlderPage = false;
         this.executionsPaginationLoading = false;
@@ -269,10 +274,30 @@ class TransferStore {
 
       // The transfer payload no longer embeds its executions, so refresh the
       // most recent page from the dedicated executions endpoint to keep the
-      // timeline statuses live during polling and to surface newly started
-      // executions. Only needed once the executions list has been loaded.
+      // timeline statuses live and to surface newly started executions. Only
+      // needed once the executions list has been loaded. During polling, only
+      // refresh when the latest execution is still active — otherwise a
+      // completed transfer would re-fetch executions on every poll cycle.
+      const activeStatuses = [
+        "RUNNING",
+        "PENDING",
+        "CANCELLING",
+        "AWAITING_MINION_ALLOCATIONS",
+      ];
+      // Keep refreshing while either the transfer reports an active execution
+      // (catches newly started executions) OR our own latest known execution is
+      // still active (so we capture its final RUNNING -> COMPLETED/ERROR
+      // transition before we stop refreshing).
+      const newestExecution =
+        this.executionsList[this.executionsList.length - 1];
+      const hasActiveExecution =
+        activeStatuses.includes(transfer.last_execution_status) ||
+        (newestExecution != null &&
+          activeStatuses.includes(newestExecution.status));
+      const shouldRefreshExecutions =
+        this.executionsList.length > 0 && (!polling || hasActiveExecution);
       let freshExecutions: Execution[] | null = null;
-      if (this.executionsList.length > 0) {
+      if (shouldRefreshExecutions) {
         try {
           freshExecutions = await TransferSource.getExecutions(transferId, {
             limit: this.executionsPageSize,
@@ -351,55 +376,119 @@ class TransferStore {
 
   currentlyLoadingExecution = "";
 
+  // Execution ids whose tasks are currently being fetched, keyed per id so a
+  // failed/evicted load can be retried (see getExecutionTasks).
+  private loadingExecutionTaskIds: Set<string> = new Set();
+
   @action async getExecutionTasks(options: {
     transferId: string;
     executionId?: string;
     polling?: boolean;
   }) {
     const { transferId: transferId, executionId, polling } = options;
-
-    if (!polling && this.currentlyLoadingExecution === executionId) {
-      return;
-    }
-    this.currentlyLoadingExecution = polling
+    // Capture the execution we are actually loading in a local. Everything
+    // below (the fetch, the store update, the in-flight bookkeeping) must use
+    // this `targetId` rather than the mutable `this.currentlyLoadingExecution`,
+    // which can change while we await — otherwise a fetch resolving for one
+    // execution can evict another execution's tasks from the store.
+    const targetId = polling
       ? this.currentlyLoadingExecution
       : executionId || "";
-    if (!this.currentlyLoadingExecution) {
-      return;
-    }
-
-    if (
-      !polling &&
-      this.executionsTasks.find(e => e.id === this.currentlyLoadingExecution)
-    ) {
+    if (!targetId) {
       return;
     }
 
     if (!polling) {
+      this.currentlyLoadingExecution = targetId;
+      // Tasks already loaded — this execution is ready, so clear any spinner
+      // left over from a previous (different) execution's in-flight load.
+      if (this.executionsTasks.find(e => e.id === targetId)) {
+        this.executionsTasksLoading = false;
+        return;
+      }
+      // A fetch for this execution is already in flight — don't duplicate it,
+      // but make sure the spinner reflects that this execution is loading.
+      // NOTE: keyed per execution id (not a single mutable field) so that an
+      // execution whose previous load failed/was evicted can be retried.
+      if (this.loadingExecutionTaskIds.has(targetId)) {
+        this.executionsTasksLoading = true;
+        return;
+      }
+      this.loadingExecutionTaskIds.add(targetId);
       this.executionsTasksLoading = true;
     }
 
     try {
       const executionTasks = await TransferSource.getExecutionTasks({
         transferId: transferId,
-        executionId: this.currentlyLoadingExecution,
+        executionId: targetId,
         polling,
       });
       runInAction(() => {
         this.executionsTasks = [
-          ...this.executionsTasks.filter(
-            e => e.id !== this.currentlyLoadingExecution,
-          ),
+          ...this.executionsTasks.filter(e => e.id !== targetId),
           executionTasks,
         ];
       });
     } catch (err) {
       console.error(err);
     } finally {
-      runInAction(() => {
-        this.executionsTasksLoading = false;
-      });
+      if (!polling) {
+        runInAction(() => {
+          this.loadingExecutionTaskIds.delete(targetId);
+          // Only clear the spinner if we are still on the execution we loaded.
+          if (this.currentlyLoadingExecution === targetId) {
+            this.executionsTasksLoading = false;
+          }
+        });
+      }
     }
+  }
+
+  // Prefetch the tasks for a whole page of executions in the background, so that
+  // clicking through the timeline bullets is instant (served from the
+  // executionsTasks cache) instead of firing a request per bullet. Bounded to
+  // the page size, so it never reloads the full execution/task history.
+  @action async prefetchExecutionsTasks(executions: Execution[]): Promise<void> {
+    const transferId = this.transferDetails?.id;
+    if (!transferId) {
+      return;
+    }
+    await Promise.all(
+      executions.map(async execution => {
+        // Skip executions whose tasks are already cached or already loading.
+        if (
+          this.executionsTasks.find(e => e.id === execution.id) ||
+          this.loadingExecutionTaskIds.has(execution.id)
+        ) {
+          return;
+        }
+        this.loadingExecutionTaskIds.add(execution.id);
+        try {
+          const executionTasks = await TransferSource.getExecutionTasks({
+            transferId,
+            executionId: execution.id,
+            polling: true, // background fetch: skip logging / quiet errors
+          });
+          runInAction(() => {
+            if (!this.executionsTasks.find(e => e.id === execution.id)) {
+              this.executionsTasks = [...this.executionsTasks, executionTasks];
+            }
+            // If the user clicked this bullet while it was still prefetching,
+            // clear the spinner now that its tasks are available.
+            if (this.currentlyLoadingExecution === execution.id) {
+              this.executionsTasksLoading = false;
+            }
+          });
+        } catch (err) {
+          console.error(err);
+        } finally {
+          runInAction(() => {
+            this.loadingExecutionTaskIds.delete(execution.id);
+          });
+        }
+      }),
+    );
   }
 
   @action async execute(transferId: string, fields?: Field[]): Promise<void> {
