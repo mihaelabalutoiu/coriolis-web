@@ -147,6 +147,12 @@ const conf: Config = {
       requiredFields: ["zone"],
       relistFields: ["linux_template", "windows_template"],
     },
+    {
+      name: "stackit",
+      types: ["destination"],
+      requiredFields: ["project", "availability_zone", "migr_project", "migr_availability_zone"],
+      relistFields: ["security_groups", "migr_image_map", "migr_network", "keypair_name", "migr_image"],
+    },
   ],
 
   /*

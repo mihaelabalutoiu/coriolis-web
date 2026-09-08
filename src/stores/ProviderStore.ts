@@ -76,18 +76,20 @@ export const getFieldChangeOptions = (config: {
     return false;
   };
 
-  const requiredValidFields = requiredFields.filter(filterValidField);
+  const knownRequiredFields = schema.length
+    ? requiredFields.filter(fn => findFieldInSchema(fn))
+    : requiredFields;
+
+  const requiredValidFields = knownRequiredFields.filter(filterValidField);
   const relistValidFields = relistFields?.filter(filterValidField);
 
-  const relistField = relistFields?.find(fn => fn === fieldName);
+  const hasEnoughContext =
+    requiredValidFields.length === knownRequiredFields.length;
+  const triggersRelist =
+    Boolean(requiredValidFields.find(fn => fn === fieldName)) ||
+    Boolean(relistFields?.find(fn => fn === fieldName));
 
-  const isCurrentFieldValid = field
-    ? requiredValidFields.find(fn => fn === fieldName) || relistField
-    : true;
-  if (
-    requiredValidFields.length !== requiredFields.length ||
-    !isCurrentFieldValid
-  ) {
+  if (field ? !triggersRelist : !hasEnoughContext) {
     return null;
   }
 
