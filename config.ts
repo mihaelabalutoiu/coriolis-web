@@ -105,31 +105,26 @@ const conf: Config = {
       name: "oci",
       types: ["destination"],
       requiredFields: ["compartment", "availability_domain", "vcn_compartment"],
-      relistFields: ["migr_image_map", "migr_image"],
     },
     {
       name: "opca",
       types: ["destination"],
       requiredFields: ["compartment", "availability_domain", "vcn_compartment"],
-      relistFields: ["migr_image_map", "migr_image"],
     },
     {
       name: "o3c",
       types: ["destination"],
       requiredFields: ["compartment", "availability_domain", "vcn_compartment"],
-      relistFields: ["migr_image_map", "migr_image"],
     },
     {
       name: "vmware_vsphere",
       types: ["destination"],
       requiredFields: ["import_datacenter"],
-      relistFields: ["import_cluster", "migr_minion_cluster"],
     },
     {
       name: "proxmox",
       types: ["destination"],
       requiredFields: ["import_node"],
-      relistFields: ["linux_template", "windows_template"],
     },
     {
       name: "olvm",
@@ -145,7 +140,6 @@ const conf: Config = {
       name: "cloudstack",
       types: ["destination"],
       requiredFields: ["zone"],
-      relistFields: ["linux_template", "windows_template"],
     },
     {
       name: "stackit",
