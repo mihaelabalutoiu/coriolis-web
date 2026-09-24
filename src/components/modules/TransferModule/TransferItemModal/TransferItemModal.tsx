@@ -22,6 +22,7 @@ import providerStore, {
 import transferStore from "@src/stores/TransferStore";
 import endpointStore from "@src/stores/EndpointStore";
 import { OptionsSchemaPlugin } from "@src/plugins";
+import { discardStaleArrayValues } from "@src/plugins/default/OptionsSchemaPlugin";
 
 import Button from "@src/components/ui/Button";
 import StatusImage from "@src/components/ui/StatusComponents/StatusImage";
@@ -42,6 +43,7 @@ import type { UpdateData, ActionItemDetails } from "@src/@types/MainItem";
 import {
   Endpoint,
   EndpointUtils,
+  OptionValues,
   StorageBackend,
   StorageMap,
 } from "@src/@types/Endpoint";
@@ -546,14 +548,22 @@ class TransferItemModal extends React.Component<Props, State> {
     if (!changedEnvData) {
       return;
     }
-    providerStore.getOptionsValues({
-      optionsType: type,
-      endpointId: endpoint.id,
-      providerName: endpoint.type,
-      useCache,
-      envData,
-      requiresWindowsImage: this.requiresWindowsImage,
-    });
+    providerStore
+      .getOptionsValues({
+        optionsType: type,
+        endpointId: endpoint.id,
+        providerName: endpoint.type,
+        useCache,
+        envData,
+        requiresWindowsImage: this.requiresWindowsImage,
+      })
+      .then(options => {
+        // A field change may relist the array options,
+        // so the previously selected values may no longer be available
+        if (field) {
+          this.discardStaleArrayValues(type, options);
+        }
+      });
     if (type === "destination") {
       networkStore.loadNetworks(endpoint.id, envData, { cache: true });
       if (this.hasStorageMap()) {
@@ -562,6 +572,51 @@ class TransferItemModal extends React.Component<Props, State> {
         });
       }
     }
+  }
+
+  discardStaleArrayValues(
+    type: "source" | "destination",
+    options: OptionValues[],
+  ) {
+    const schema =
+      type === "source"
+        ? providerStore.sourceSchema
+        : providerStore.destinationSchema;
+    const transferData: any =
+      type === "source"
+        ? this.props.transfer.source_environment
+        : this.props.transfer.destination_environment;
+
+    this.setState(
+      prevState => {
+        const data =
+          type === "source"
+            ? { ...prevState.sourceData }
+            : { ...prevState.destinationData };
+        let hasChanges = false;
+        schema.forEach(field => {
+          const option = options.find(o => o.name === field.name);
+          const values = data[field.name] ?? transferData[field.name];
+          if (field.type !== "array" || !option || !Array.isArray(values)) {
+            return;
+          }
+          const validValues = discardStaleArrayValues(values, option);
+          if (validValues.length !== values.length) {
+            data[field.name] = validValues;
+            hasChanges = true;
+          }
+        });
+        if (!hasChanges) {
+          return null;
+        }
+        return type === "source"
+          ? { ...prevState, sourceData: data }
+          : { ...prevState, destinationData: data };
+      },
+      () => {
+        this.validateOptions(type);
+      },
+    );
   }
 
   hasStorageMap(): boolean {

@@ -43,6 +43,18 @@ export const discardStaleEnumDefault = (field: Field) => {
   }
 };
 
+// Keeps only the array values which are still listed in the option's values,
+// e.g. security groups from a previously selected project are discarded
+export const discardStaleArrayValues = (
+  values: any[],
+  option: OptionValues,
+): any[] => {
+  const validValues = (option.values as any[]).map(v =>
+    v !== null && typeof v === "object" ? v.id || v.value : v,
+  );
+  return values.filter(v => validValues.includes(v));
+};
+
 export const defaultFillFieldValues = (field: Field, option: OptionValues) => {
   if (field.type === "string") {
     field.enum = [...option.values] as EnumItem[];

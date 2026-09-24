@@ -14,6 +14,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import type { InstanceScript } from "@src/@types/Instance";
 import { OptionsSchemaPlugin } from "@src/plugins";
+import { discardStaleArrayValues } from "@src/plugins/default/OptionsSchemaPlugin";
 
 describe("OptionsSchemaPlugin.getUserScripts", () => {
   let parser: ReturnType<typeof OptionsSchemaPlugin.for>;
@@ -192,5 +193,37 @@ describe("OptionsSchemaPlugin.getUserScripts", () => {
     expect(payload.global.windows).toEqual([
       { phase: "osmorphing_post_os_mount", payload: "Write-Host hi" },
     ]);
+  });
+});
+
+describe("discardStaleArrayValues", () => {
+  it("discards the values which are no longer listed", () => {
+    expect(
+      discardStaleArrayValues(["ssh", "default"], {
+        name: "security_groups",
+        values: ["default"],
+        config_default: "",
+      }),
+    ).toEqual(["default"]);
+  });
+
+  it("discards all the values if none are listed anymore", () => {
+    expect(
+      discardStaleArrayValues(["ssh"], {
+        name: "security_groups",
+        values: [],
+        config_default: "",
+      }),
+    ).toEqual([]);
+  });
+
+  it("matches object values by their ID", () => {
+    expect(
+      discardStaleArrayValues(["id-1", "id-2"], {
+        name: "security_groups",
+        values: [{ name: "ssh", id: "id-2" }],
+        config_default: "",
+      }),
+    ).toEqual(["id-2"]);
   });
 });

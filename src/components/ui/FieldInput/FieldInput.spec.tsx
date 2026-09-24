@@ -182,6 +182,72 @@ describe("FieldInput", () => {
     });
   });
 
+  it("shows array dropdown placeholder only when there is no selection", async () => {
+    const enumItems = ["foo", "bar", "baz"];
+    let value: string[] = [];
+    const onChange = jest.fn((itemValue: string) => {
+      value = value.includes(itemValue)
+        ? value.filter(v => v !== itemValue)
+        : [...value, itemValue];
+    });
+    const renderField = () => (
+      <FieldInput
+        name="Field Name"
+        type="array"
+        enum={enumItems}
+        value={value}
+        onChange={onChange}
+      />
+    );
+    const getLabel = () =>
+      TestUtils.select("DropdownButton__Label")?.textContent;
+
+    const { rerender } = render(renderField());
+    expect(getLabel()).toBe("Choose values");
+
+    await act(async () => {
+      TestUtils.select("DropdownButton__Wrapper")?.click();
+    });
+    await act(async () => {
+      TestUtils.selectAll("Dropdown__ListItem-")[1].click();
+    });
+    expect(onChange).toHaveBeenCalledWith("bar");
+    rerender(renderField());
+    expect(getLabel()).toBe("bar");
+
+    await act(async () => {
+      TestUtils.selectAll("Dropdown__ListItem-")[2].click();
+    });
+    rerender(renderField());
+    expect(getLabel()).toBe("bar, baz");
+
+    await act(async () => {
+      TestUtils.selectAll("Dropdown__ListItem-")[1].click();
+    });
+    rerender(renderField());
+    expect(getLabel()).toBe("baz");
+
+    await act(async () => {
+      TestUtils.selectAll("Dropdown__ListItem-")[2].click();
+    });
+    rerender(renderField());
+    expect(value).toEqual([]);
+    expect(getLabel()).toBe("Choose values");
+  });
+
+  it("renders disabled array dropdown with selected values", () => {
+    render(
+      <FieldInput
+        name="Field Name"
+        type="array"
+        disabled
+        enum={["foo", "bar"]}
+        value={["bar"]}
+      />,
+    );
+    expect(TestUtils.select("DropdownButton__Label")?.textContent).toBe("bar");
+  });
+
   it("renders object field", () => {
     render(
       <FieldInput
