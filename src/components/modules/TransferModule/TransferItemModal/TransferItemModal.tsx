@@ -711,12 +711,10 @@ class TransferItemModal extends React.Component<Props, State> {
         ? this.props.transfer.source_environment
         : this.props.transfer.destination_environment;
     if (field.type === "array") {
-      const currentValues: string[] = data[field.name] || [];
-      const oldValues: string[] = transferData[field.name] || [];
-      let values: string[] = currentValues;
-      if (!currentValues.length) {
-        values = [...oldValues];
-      }
+      // An empty array is a valid (cleared) value, only fall back to the
+      // transfer's values if the field hasn't been changed yet
+      const values: string[] =
+        data[field.name] ?? transferData[field.name] ?? [];
       if (values.find(v => v === value)) {
         data[field.name] = values.filter(v => v !== value);
       } else {
