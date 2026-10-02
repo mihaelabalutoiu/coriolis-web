@@ -121,12 +121,13 @@ class FilterList extends React.Component<Props, State> {
       this.setState(
         prevState => {
           const items = this.filterItems(props.items);
-          const lastPage = Math.max(
-            1,
-            Math.ceil(items.length / prevState.itemsPerPage),
-          );
+          const itemsPerPage = paginationModeChanged
+            ? props.initialItemsPerPage || prevState.itemsPerPage
+            : prevState.itemsPerPage;
+          const lastPage = Math.max(1, Math.ceil(items.length / itemsPerPage));
           return {
             items,
+            itemsPerPage,
             selectedItems: [],
             selectAllSelected: false,
             currentPage: paginationModeChanged

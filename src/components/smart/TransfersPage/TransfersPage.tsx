@@ -90,6 +90,8 @@ class TransfersPage extends React.Component<Props, State> {
 
   isSearching = false;
 
+  allTransfersRequest: Promise<void> | null = null;
+
   componentDidMount() {
     document.title = "Coriolis Transfers";
 
@@ -147,14 +149,19 @@ class TransfersPage extends React.Component<Props, State> {
       this.setState({ showAllTransfers: false });
       return;
     }
-    if (this.state.showAllTransfers) {
+    if (this.state.showAllTransfers || this.allTransfersRequest) {
       return;
     }
+    this.allTransfersRequest = transferStore.getAllTransfers({
+      showLoading: true,
+    });
     try {
-      await transferStore.getAllTransfers({ showLoading: true });
+      await this.allTransfersRequest;
     } catch (err) {
       console.error(err);
       return;
+    } finally {
+      this.allTransfersRequest = null;
     }
     if (this.isSearching && !this.stopPolling) {
       this.setState({ showAllTransfers: true });
@@ -309,7 +316,7 @@ class TransfersPage extends React.Component<Props, State> {
 
   handleShowCreateDeploymentsModal() {
     instanceStore.loadInstancesDetailsBulk(
-      transferStore.transfers.map(r => ({
+      this.state.selectedTransfers.map(r => ({
         endpointId: r.origin_endpoint_id,
         instanceIds: r.instances,
         env: r.source_environment,
@@ -500,6 +507,7 @@ class TransfersPage extends React.Component<Props, State> {
               onFiltersChange={(filterStatus, filterText) => {
                 this.handleFiltersChange(filterStatus, filterText);
               }}
+              initialItemsPerPage={transferStore.transfersItemsPerPage}
               apiPagination={
                 this.state.showAllTransfers
                   ? undefined
