@@ -136,7 +136,7 @@ class MinionPoolDetailsPage extends React.Component<Props, State> {
       minionPoolStore.loadMinionPoolDetails(this.minionPoolId, {
         showLoading: true,
       }),
-      transferStore.getTransfers(),
+      transferStore.getAllTransfers(),
       deploymentStore.getDeployments(),
     ]);
     const minionPool = this.minionPool;
@@ -205,7 +205,7 @@ class MinionPoolDetailsPage extends React.Component<Props, State> {
         showLoading,
         skipLog: true,
       }),
-      transferStore.getTransfers(),
+      transferStore.getAllTransfers(),
       deploymentStore.getDeployments(),
     ]);
 
@@ -394,7 +394,7 @@ class MinionPoolDetailsPage extends React.Component<Props, State> {
             <MinionPoolDetailsContent
               item={this.minionPool}
               itemId={this.minionPoolId}
-              transfers={transferStore.transfers.filter(checkPoolUsed)}
+              transfers={transferStore.allTransfers.filter(checkPoolUsed)}
               deployments={deploymentStore.deployments.filter(checkPoolUsed)}
               endpoints={endpointStore.endpoints}
               schema={minionPoolStore.minionPoolCombinedSchema}

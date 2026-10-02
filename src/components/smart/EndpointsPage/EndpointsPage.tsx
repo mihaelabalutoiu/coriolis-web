@@ -115,13 +115,13 @@ class EndpointsPage extends React.Component<Props, State> {
   }
 
   getEndpointUsage(endpointId: string) {
-    const replicasCount = transferStore.transfers.filter(
+    const replicasCount = transferStore.allTransfers.filter(
       r =>
         (r.origin_endpoint_id === endpointId ||
           r.destination_endpoint_id === endpointId) &&
         r.scenario === "replica",
     ).length;
-    const migrationsCount = transferStore.transfers.filter(
+    const migrationsCount = transferStore.allTransfers.filter(
       r =>
         (r.origin_endpoint_id === endpointId ||
           r.destination_endpoint_id === endpointId) &&
@@ -134,14 +134,14 @@ class EndpointsPage extends React.Component<Props, State> {
   handleProjectChange() {
     endpointStore.getEndpoints({ showLoading: true });
     deploymentStore.getDeployments();
-    transferStore.getTransfers();
+    transferStore.getAllTransfers();
   }
 
   handleReloadButtonClick() {
     projectStore.getProjects();
     endpointStore.getEndpoints({ showLoading: true });
     deploymentStore.getDeployments();
-    transferStore.getTransfers();
+    transferStore.getAllTransfers();
   }
 
   handleItemClick(item: EndpointType) {
@@ -266,7 +266,7 @@ class EndpointsPage extends React.Component<Props, State> {
     await Promise.all([
       endpointStore.getEndpoints({ showLoading, skipLog: true }),
       deploymentStore.getDeployments({ skipLog: true }),
-      transferStore.getTransfers({ skipLog: true }),
+      transferStore.getAllTransfers({ skipLog: true }),
     ]);
     this.pollTimeout = window.setTimeout(() => {
       this.pollData();

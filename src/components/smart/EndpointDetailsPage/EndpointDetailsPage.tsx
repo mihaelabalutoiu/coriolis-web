@@ -91,7 +91,7 @@ class EndpointDetailsPage extends React.Component<Props, State> {
     transfers: TransferItem[];
   } {
     const endpointId = this.props.id;
-    const transfers = transferStore.transfers.filter(
+    const transfers = transferStore.allTransfers.filter(
       r =>
         r.origin_endpoint_id === endpointId ||
         r.destination_endpoint_id === endpointId,
@@ -118,7 +118,7 @@ class EndpointDetailsPage extends React.Component<Props, State> {
     this.setState({ showEndpointInUseLoadingModal: true });
 
     await Promise.all([
-      transferStore.getTransfers(),
+      transferStore.getAllTransfers(),
       deploymentStore.getDeployments(),
     ]);
     const endpointUsage = this.getEndpointUsage();
@@ -221,7 +221,7 @@ class EndpointDetailsPage extends React.Component<Props, State> {
     this.loadEndpoints();
 
     await Promise.all([
-      transferStore.getTransfers(),
+      transferStore.getAllTransfers(),
       deploymentStore.getDeployments(),
       regionStore.getRegions(),
     ]);
