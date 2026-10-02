@@ -58,6 +58,7 @@ type State = {
   showCreateDeploymentsModal: boolean;
   showDeleteDisksModal: boolean;
   showDeleteTransfersModal: boolean;
+  showAllTransfers: boolean;
 };
 
 type Props = {
@@ -74,6 +75,7 @@ class TransfersPage extends React.Component<Props, State> {
     showExecutionOptionsModal: false,
     showDeleteDisksModal: false,
     showDeleteTransfersModal: false,
+    showAllTransfers: false,
   };
 
   pollTimeout = 0;
@@ -86,10 +88,13 @@ class TransfersPage extends React.Component<Props, State> {
 
   paginatedTransferIds: string[] = [];
 
+  isSearching = false;
+
   componentDidMount() {
     document.title = "Coriolis Transfers";
 
     transferStore.resetTransferPagination();
+    transferStore.resetTransfersStatusFilter();
 
     projectStore.getProjects();
     endpointStore.getEndpoints({ showLoading: true });
@@ -125,15 +130,52 @@ class TransfersPage extends React.Component<Props, State> {
     return transfer?.last_execution_status || "";
   }
 
+  get displayedTransfers(): TransferItem[] {
+    return this.state.showAllTransfers
+      ? transferStore.allTransfers
+      : transferStore.transfers;
+  }
+
+  async handleFiltersChange(filterStatus: string, filterText: string) {
+    const status = filterStatus === "all" ? null : filterStatus;
+    if (status !== transferStore.transfersStatusFilter) {
+      transferStore.setTransfersStatusFilter(status);
+    }
+
+    this.isSearching = filterText !== "";
+    if (!this.isSearching) {
+      this.setState({ showAllTransfers: false });
+      return;
+    }
+    if (this.state.showAllTransfers) {
+      return;
+    }
+    try {
+      await transferStore.getAllTransfers({ showLoading: true });
+    } catch (err) {
+      console.error(err);
+      return;
+    }
+    if (this.isSearching && !this.stopPolling) {
+      this.setState({ showAllTransfers: true });
+    }
+  }
+
   handleProjectChange() {
     transferStore.resetTransferPagination();
     transferStore.getTransfers();
+    if (this.isSearching) {
+      transferStore.getAllTransfers({ showLoading: true });
+    }
     endpointStore.getEndpoints({ showLoading: true });
   }
 
   handleReloadButtonClick() {
     projectStore.getProjects();
     transferStore.getTransfers({ showLoading: true });
+    if (this.isSearching) {
+      transferStore.getAllTransfers({ showLoading: true });
+    }
     endpointStore.getEndpoints({ showLoading: true });
     userStore.getAllUsers({ showLoading: true, quietError: true });
   }
@@ -152,7 +194,7 @@ class TransfersPage extends React.Component<Props, State> {
 
   executeSelectedTransfers(fields: Field[]) {
     this.state.selectedTransfers.forEach(transfer => {
-      const actualTransfer = transferStore.transfers.find(
+      const actualTransfer = this.displayedTransfers.find(
         r => r.id === transfer.id,
       );
       if (actualTransfer && this.isExecuteEnabled(actualTransfer)) {
@@ -211,7 +253,7 @@ class TransfersPage extends React.Component<Props, State> {
 
   cancelExecutions() {
     this.state.selectedTransfers.forEach(transfer => {
-      const actualTransfer = transferStore.transfers.find(
+      const actualTransfer = this.displayedTransfers.find(
         r => r.id === transfer.id,
       );
       if (
@@ -284,6 +326,9 @@ class TransfersPage extends React.Component<Props, State> {
 
     await Promise.all([
       transferStore.getTransfers({ skipLog: true }),
+      this.isSearching
+        ? transferStore.getAllTransfers({ skipLog: true, quietError: true })
+        : null,
       endpointStore.getEndpoints({ skipLog: true }),
       userStore.getAllUsers({ skipLog: true, quietError: true }),
     ]);
@@ -299,7 +344,7 @@ class TransfersPage extends React.Component<Props, State> {
     if (
       this.state.modalIsOpen ||
       this.stopPolling ||
-      transferStore.transfers.length === 0
+      this.displayedTransfers.length === 0
     ) {
       return;
     }
@@ -364,7 +409,7 @@ class TransfersPage extends React.Component<Props, State> {
     let atLeastOneHasExecuteEnabled = false;
     let atLeaseOneIsRunning = false;
     this.state.selectedTransfers.forEach(transfer => {
-      const storeTransfer = transferStore.transfers.find(
+      const storeTransfer = this.displayedTransfers.find(
         r => r.id === transfer.id,
       );
       atLeastOneHasExecuteEnabled =
@@ -432,8 +477,12 @@ class TransfersPage extends React.Component<Props, State> {
             <FilterList
               filterItems={this.getFilterItems()}
               selectionLabel="transfer"
-              loading={transferStore.loading}
-              items={transferStore.transfers}
+              loading={
+                this.state.showAllTransfers
+                  ? transferStore.allTransfersLoading
+                  : transferStore.loading
+              }
+              items={this.displayedTransfers}
               dropdownActions={BulkActions}
               onItemClick={item => {
                 this.handleItemClick(item);
@@ -448,19 +497,26 @@ class TransfersPage extends React.Component<Props, State> {
               onPaginatedItemsChange={paginatedTransfers => {
                 this.handlePaginatedItemsChange(paginatedTransfers);
               }}
-              apiPagination={{
-                currentPage: transferStore.transfersPage,
-                hasNextPage: transferStore.transfersHasNextPage,
-                itemsPerPage: transferStore.transfersItemsPerPage,
-                onPageChange: page => {
-                  transferStore.setTransfersPage(page);
-                },
-                onItemsPerPageChange: e => {
-                  transferStore.setTransfersItemsPerPage(
-                    parseInt(e.target.value, 10),
-                  );
-                },
+              onFiltersChange={(filterStatus, filterText) => {
+                this.handleFiltersChange(filterStatus, filterText);
               }}
+              apiPagination={
+                this.state.showAllTransfers
+                  ? undefined
+                  : {
+                      currentPage: transferStore.transfersPage,
+                      hasNextPage: transferStore.transfersHasNextPage,
+                      itemsPerPage: transferStore.transfersItemsPerPage,
+                      onPageChange: page => {
+                        transferStore.setTransfersPage(page);
+                      },
+                      onItemsPerPageChange: e => {
+                        transferStore.setTransfersItemsPerPage(
+                          parseInt(e.target.value, 10),
+                        );
+                      },
+                    }
+              }
               renderItemComponent={options => (
                 <TransferListItem
                   {...options}

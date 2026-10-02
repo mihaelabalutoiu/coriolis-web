@@ -104,7 +104,7 @@ class ProjectsPage extends React.Component<Props, State> {
     this.loadAdminData(showLoading);
 
     await Promise.all([
-      transferStore.getTransfers({ skipLog: true, showLoading }),
+      transferStore.getAllTransfers({ skipLog: true, showLoading }),
       deploymentStore.getDeployments({ skipLog: true, showLoading }),
       endpointStore.getEndpoints({ skipLog: true, showLoading }),
       projectStore.getProjects({ skipLog: true, showLoading }),
@@ -133,7 +133,7 @@ class ProjectsPage extends React.Component<Props, State> {
           listNoMargin
           listComponent={
             <DashboardContent
-              transfers={transferStore.transfers}
+              transfers={transferStore.allTransfers}
               deployments={deploymentStore.deployments}
               endpoints={endpointStore.endpoints}
               users={userStore.users}
@@ -151,7 +151,7 @@ class ProjectsPage extends React.Component<Props, State> {
               usersLoading={userStore.users.length === 0}
               licenceLoading={licenceStore.loadingLicenceInfo}
               licenceError={licenceStore.licenceInfoError}
-              transfersLoading={transferStore.loading}
+              transfersLoading={transferStore.allTransfersLoading}
               onNewTransferClick={() => {
                 this.props.onNavigate("/wizard/migration");
               }}

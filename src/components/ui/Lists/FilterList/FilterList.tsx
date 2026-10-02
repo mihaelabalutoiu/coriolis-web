@@ -62,6 +62,7 @@ type Props = {
   ) => boolean;
   onSelectedItemsChange?: (items: any[]) => void;
   onPaginatedItemsChange?: (items: any[]) => void;
+  onFiltersChange?: (filterStatus: string, filterText: string) => void;
   filterItems: DictItem[];
   emptyListImage?: string | null;
   emptyListMessage?: string;
@@ -111,6 +112,39 @@ class FilterList extends React.Component<Props, State> {
   }
 
   UNSAFE_componentWillReceiveProps(props: Props) {
+    if (
+      props.items.length !== this.props.items.length &&
+      this.props.onFiltersChange
+    ) {
+      const paginationModeChanged =
+        Boolean(props.apiPagination) !== Boolean(this.props.apiPagination);
+      this.setState(
+        prevState => {
+          const items = this.filterItems(props.items);
+          const lastPage = Math.max(
+            1,
+            Math.ceil(items.length / prevState.itemsPerPage),
+          );
+          return {
+            items,
+            selectedItems: [],
+            selectAllSelected: false,
+            currentPage: paginationModeChanged
+              ? 1
+              : Math.min(prevState.currentPage, lastPage),
+          };
+        },
+        () => {
+          if (this.props.onPaginatedItemsChange) {
+            this.props.onPaginatedItemsChange(this.paginatedItems);
+          }
+        },
+      );
+      if (this.props.onSelectedItemsChange)
+        this.props.onSelectedItemsChange([]);
+      return;
+    }
+
     if (props.items.length !== this.props.items.length) {
       this.setState(
         {
@@ -188,6 +222,12 @@ class FilterList extends React.Component<Props, State> {
         if (this.props.onPaginatedItemsChange) {
           this.props.onPaginatedItemsChange(this.paginatedItems);
         }
+        if (this.props.onFiltersChange) {
+          this.props.onFiltersChange(
+            this.state.filterStatus,
+            this.state.filterText,
+          );
+        }
       },
     );
   }
@@ -202,6 +242,12 @@ class FilterList extends React.Component<Props, State> {
       () => {
         if (this.props.onPaginatedItemsChange) {
           this.props.onPaginatedItemsChange(this.paginatedItems);
+        }
+        if (this.props.onFiltersChange) {
+          this.props.onFiltersChange(
+            this.state.filterStatus,
+            this.state.filterText,
+          );
         }
       },
     );

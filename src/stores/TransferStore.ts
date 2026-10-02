@@ -75,7 +75,15 @@ class TransferStore {
 
   @observable transfersItemsPerPage = 25;
 
+  @observable transfersStatusFilter: string | null = null;
+
   transfersLoaded = false;
+
+  @observable allTransfers: TransferItem[] = [];
+
+  @observable allTransfersLoading = false;
+
+  allTransfersLoaded = false;
 
   private transferPageMarkers: (string | null)[] = [null];
 
@@ -95,6 +103,10 @@ class TransferStore {
     this.transfersPage = 1;
     this.transfersHasNextPage = false;
     this.transferPageMarkers = [null];
+  }
+
+  @action resetTransfersStatusFilter(): void {
+    this.transfersStatusFilter = null;
   }
 
   @action resetExecutionsPagination(): void {
@@ -195,6 +207,14 @@ class TransferStore {
     await this.getTransfers({ showLoading: true });
   }
 
+  @action async setTransfersStatusFilter(
+    status: string | null,
+  ): Promise<void> {
+    this.transfersStatusFilter = status;
+    this.resetTransferPagination();
+    await this.getTransfers({ showLoading: true });
+  }
+
   @action async getTransfers(options?: {
     showLoading?: boolean;
     skipLog?: boolean;
@@ -215,6 +235,7 @@ class TransferStore {
         quietError: options?.quietError || isPaginationRequest,
         limit: this.transfersItemsPerPage,
         marker,
+        status: this.transfersStatusFilter,
       });
       if (isPaginationRequest && raw.length === 0) {
         runInAction(() => {
@@ -237,6 +258,31 @@ class TransferStore {
       throw err;
     } finally {
       this.getTransfersDone();
+    }
+  }
+
+  @action async getAllTransfers(options?: {
+    showLoading?: boolean;
+    skipLog?: boolean;
+    quietError?: boolean;
+  }): Promise<void> {
+    if ((options && options.showLoading) || !this.allTransfersLoaded) {
+      this.allTransfersLoading = true;
+    }
+
+    try {
+      const transfers = await TransferSource.getTransfers({
+        skipLog: options?.skipLog,
+        quietError: options?.quietError,
+      });
+      runInAction(() => {
+        this.allTransfers = transfers;
+        this.allTransfersLoaded = true;
+      });
+    } finally {
+      runInAction(() => {
+        this.allTransfersLoading = false;
+      });
     }
   }
 
@@ -556,6 +602,7 @@ class TransferStore {
     await TransferSource.delete(transferId);
     runInAction(() => {
       this.transfers = this.transfers.filter(r => r.id !== transferId);
+      this.allTransfers = this.allTransfers.filter(r => r.id !== transferId);
     });
   }
 

@@ -101,8 +101,12 @@ class TransferSource {
     quietError?: boolean;
     limit?: number;
     marker?: string | null;
+    status?: string | null;
   }): Promise<TransferItem[]> {
     const params: string[] = ["sort_key=updated_at", "sort_dir=desc"];
+    if (options?.status) {
+      params.push(`status=${encodeURIComponent(options.status)}`);
+    }
     if (options?.marker) {
       params.push(`marker=${encodeURIComponent(options.marker)}`);
     }
