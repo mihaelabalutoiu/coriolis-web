@@ -31,6 +31,18 @@ const conf: Config = {
   // The timeout between polling requests
   requestPollTimeout: 5000,
 
+  // The timeout between polling requests for pages that load the complete
+  // transfers/deployments dataset. A single polling cycle may now issue
+  // several backend requests (one per batch), so these pages poll less
+  // frequently than `requestPollTimeout` to avoid unnecessary server load.
+  listPollTimeout: 15000,
+
+  // The fixed `limit` used when loading the complete transfers/deployments
+  // dataset from the backend in batches. This is independent of the UI page
+  // size: the frontend keeps fetching marker-paginated batches of this size
+  // until the whole dataset is retrieved, then paginates locally.
+  listBackendFetchBatchSize: 100,
+
   // The timeout for an inactive user session (in ms). Set 0 to disable.
   inactiveSessionTimeout: 0,
 

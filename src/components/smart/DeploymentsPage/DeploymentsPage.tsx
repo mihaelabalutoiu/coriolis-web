@@ -67,8 +67,6 @@ class DeploymentsPage extends React.Component<Props, State> {
   componentDidMount() {
     document.title = "Coriolis Deployments";
 
-    deploymentStore.resetDeploymentPagination();
-
     projectStore.getProjects();
     endpointStore.getEndpoints({ showLoading: true });
     userStore.getAllUsers({
@@ -114,7 +112,6 @@ class DeploymentsPage extends React.Component<Props, State> {
   }
 
   handleProjectChange() {
-    deploymentStore.resetDeploymentPagination();
     endpointStore.getEndpoints({ showLoading: true });
     deploymentStore.getDeployments({ showLoading: true });
   }
@@ -242,7 +239,7 @@ class DeploymentsPage extends React.Component<Props, State> {
     ]);
     this.pollTimeout = window.setTimeout(() => {
       this.pollData();
-    }, configLoader.config.requestPollTimeout);
+    }, configLoader.config.listPollTimeout || configLoader.config.requestPollTimeout);
   }
 
   render() {
@@ -300,19 +297,6 @@ class DeploymentsPage extends React.Component<Props, State> {
                 this.setState({ selectedDeployments });
               }}
               dropdownActions={BulkActions}
-              apiPagination={{
-                currentPage: deploymentStore.deploymentsPage,
-                hasNextPage: deploymentStore.deploymentsHasNextPage,
-                itemsPerPage: deploymentStore.deploymentsItemsPerPage,
-                onPageChange: page => {
-                  deploymentStore.setDeploymentsPage(page);
-                },
-                onItemsPerPageChange: e => {
-                  deploymentStore.setDeploymentsItemsPerPage(
-                    parseInt(e.target.value, 10),
-                  );
-                },
-              }}
               renderItemComponent={options => (
                 <TransferListItem
                   {...options}

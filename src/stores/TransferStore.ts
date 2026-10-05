@@ -24,7 +24,10 @@ import type { Execution, ExecutionTasks } from "@src/@types/Execution";
 import type { Endpoint } from "@src/@types/Endpoint";
 import type { Field } from "@src/@types/Field";
 import apiCaller from "@src/utils/ApiCaller";
+import configLoader from "@src/utils/Config";
 import notificationStore from "./NotificationStore";
+
+const DEFAULT_BACKEND_FETCH_BATCH_SIZE = 100;
 
 class TransferStoreUtils {
   static getNewTransfer(
@@ -69,15 +72,7 @@ class TransferStore {
 
   @observable transfersWithDisksLoading = false;
 
-  @observable transfersPage = 1;
-
-  @observable transfersHasNextPage = false;
-
-  @observable transfersItemsPerPage = 25;
-
   transfersLoaded = false;
-
-  private transferPageMarkers: (string | null)[] = [null];
 
   @observable executionsList: Execution[] = [];
 
@@ -90,12 +85,6 @@ class TransferStore {
   executionsPageSize = 10;
 
   private deletedExecutionIds: Set<string> = new Set();
-
-  @action resetTransferPagination(): void {
-    this.transfersPage = 1;
-    this.transfersHasNextPage = false;
-    this.transferPageMarkers = [null];
-  }
 
   @action resetExecutionsPagination(): void {
     this.executionsList = [];
@@ -182,19 +171,6 @@ class TransferStore {
     }
   }
 
-  @action async setTransfersPage(page: number): Promise<void> {
-    this.transfersPage = page;
-    await this.getTransfers({ showLoading: true });
-  }
-
-  @action async setTransfersItemsPerPage(itemsPerPage: number): Promise<void> {
-    this.transfersItemsPerPage = itemsPerPage;
-    this.transfersPage = 1;
-    this.transferPageMarkers = [null];
-    this.transfersHasNextPage = false;
-    await this.getTransfers({ showLoading: true });
-  }
-
   @action async getTransfers(options?: {
     showLoading?: boolean;
     skipLog?: boolean;
@@ -206,35 +182,46 @@ class TransferStore {
       this.loading = true;
     }
 
-    const marker = this.transferPageMarkers[this.transfersPage - 1] ?? null;
-    const isPaginationRequest = marker !== null;
+    const batchSize =
+      configLoader.config.listBackendFetchBatchSize ||
+      DEFAULT_BACKEND_FETCH_BATCH_SIZE;
 
     try {
-      const raw = await TransferSource.getTransfers({
-        skipLog: options?.skipLog,
-        quietError: options?.quietError || isPaginationRequest,
-        limit: this.transfersItemsPerPage,
-        marker,
-      });
-      if (isPaginationRequest && raw.length === 0) {
-        runInAction(() => {
-          this.transfersHasNextPage = false;
-          this.transfersPage = Math.max(1, this.transfersPage - 1);
+      // Load the complete dataset in fixed-size, marker-paginated batches.
+      // The backend `limit` is independent of the UI page size; the frontend
+      // paginates locally over the full result. The authoritative store is
+      // only replaced once every batch has been fetched successfully, so a
+      // mid-fetch failure never leaves a partial dataset behind.
+      const allTransfers: TransferItem[] = [];
+      const seenIds = new Set<string>();
+      let marker: string | null = null;
+
+      for (;;) {
+        const raw = await TransferSource.getTransfers({
+          skipLog: options?.skipLog,
+          quietError: options?.quietError,
+          limit: batchSize,
+          marker,
         });
-        return;
-      }
-      const hasNextPage = raw.length === this.transfersItemsPerPage;
-      const nextMarker = raw.length > 0 ? raw[raw.length - 1].id : null;
-      this.getTransfersSuccess(raw, hasNextPage, nextMarker);
-    } catch (err) {
-      if (isPaginationRequest) {
-        runInAction(() => {
-          this.transfersHasNextPage = false;
-          this.transfersPage = Math.max(1, this.transfersPage - 1);
+
+        let addedNew = false;
+        raw.forEach(transfer => {
+          if (!seenIds.has(transfer.id)) {
+            seenIds.add(transfer.id);
+            allTransfers.push(transfer);
+            addedNew = true;
+          }
         });
-        return;
+
+        // Stop on a partial/empty final page, or when a page contributes no
+        // new items (guards against repeated markers / duplicate boundaries).
+        if (raw.length < batchSize || !addedNew) {
+          break;
+        }
+        marker = raw[raw.length - 1].id;
       }
-      throw err;
+
+      this.getTransfersSuccess(allTransfers);
     } finally {
       this.getTransfersDone();
     }
@@ -347,17 +334,9 @@ class TransferStore {
     this.deletedExecutionIds.clear();
   }
 
-  @action getTransfersSuccess(
-    transfers: TransferItem[],
-    hasNextPage = false,
-    nextMarker: string | null = null,
-  ) {
+  @action getTransfersSuccess(transfers: TransferItem[]) {
     this.transfersLoaded = true;
     this.transfers = transfers;
-    this.transfersHasNextPage = hasNextPage;
-    if (nextMarker !== null) {
-      this.transferPageMarkers[this.transfersPage] = nextMarker;
-    }
   }
 
   @action getTransfersDone() {

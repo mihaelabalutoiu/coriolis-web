@@ -26,6 +26,9 @@ import type { Endpoint } from "@src/@types/Endpoint";
 import type { InstanceScript } from "@src/@types/Instance";
 import DeploymentSource from "@src/sources/DeploymentSource";
 import apiCaller from "@src/utils/ApiCaller";
+import configLoader from "@src/utils/Config";
+
+const DEFAULT_BACKEND_FETCH_BATCH_SIZE = 100;
 
 class DeploymentStore {
   @observable deployments: DeploymentItem[] = [];
@@ -36,36 +39,7 @@ class DeploymentStore {
 
   @observable detailsLoading = true;
 
-  @observable deploymentsPage = 1;
-
-  @observable deploymentsHasNextPage = false;
-
-  @observable deploymentsItemsPerPage = 25;
-
   deploymentsLoaded = false;
-
-  private deploymentPageMarkers: (string | null)[] = [null];
-
-  @action resetDeploymentPagination(): void {
-    this.deploymentsPage = 1;
-    this.deploymentsHasNextPage = false;
-    this.deploymentPageMarkers = [null];
-  }
-
-  @action async setDeploymentsPage(page: number): Promise<void> {
-    this.deploymentsPage = page;
-    await this.getDeployments({ showLoading: true });
-  }
-
-  @action async setDeploymentsItemsPerPage(
-    itemsPerPage: number,
-  ): Promise<void> {
-    this.deploymentsItemsPerPage = itemsPerPage;
-    this.deploymentsPage = 1;
-    this.deploymentPageMarkers = [null];
-    this.deploymentsHasNextPage = false;
-    await this.getDeployments({ showLoading: true });
-  }
 
   @action async getDeployments(options?: {
     showLoading?: boolean;
@@ -75,44 +49,50 @@ class DeploymentStore {
       this.loading = true;
     }
 
-    const marker = this.deploymentPageMarkers[this.deploymentsPage - 1] ?? null;
-    const isPaginationRequest = marker !== null;
+    const batchSize =
+      configLoader.config.listBackendFetchBatchSize ||
+      DEFAULT_BACKEND_FETCH_BATCH_SIZE;
 
     try {
-      const raw = await DeploymentSource.getDeployments({
-        skipLog: options?.skipLog,
-        quietError: isPaginationRequest,
-        limit: this.deploymentsItemsPerPage,
-        marker,
-      });
-      if (isPaginationRequest && raw.length === 0) {
-        runInAction(() => {
-          this.deploymentsHasNextPage = false;
-          this.deploymentsPage = Math.max(1, this.deploymentsPage - 1);
-          this.loading = false;
+      // Load the complete dataset in fixed-size, marker-paginated batches.
+      // The backend `limit` is independent of the UI page size; the frontend
+      // paginates locally over the full result. The authoritative store is
+      // only replaced once every batch has been fetched successfully, so a
+      // mid-fetch failure never leaves a partial dataset behind.
+      const allDeployments: DeploymentItem[] = [];
+      const seenIds = new Set<string>();
+      let marker: string | null = null;
+
+      for (;;) {
+        const raw = await DeploymentSource.getDeployments({
+          skipLog: options?.skipLog,
+          limit: batchSize,
+          marker,
         });
-        return;
-      }
-      const hasNextPage = raw.length === this.deploymentsItemsPerPage;
-      const nextMarker = raw.length > 0 ? raw[raw.length - 1].id : null;
-      runInAction(() => {
-        this.deployments = raw;
-        this.deploymentsHasNextPage = hasNextPage;
-        if (nextMarker !== null) {
-          this.deploymentPageMarkers[this.deploymentsPage] = nextMarker;
+
+        let addedNew = false;
+        raw.forEach(deployment => {
+          if (!seenIds.has(deployment.id)) {
+            seenIds.add(deployment.id);
+            allDeployments.push(deployment);
+            addedNew = true;
+          }
+        });
+
+        // Stop on a partial/empty final page, or when a page contributes no
+        // new items (guards against repeated markers / duplicate boundaries).
+        if (raw.length < batchSize || !addedNew) {
+          break;
         }
+        marker = raw[raw.length - 1].id;
+      }
+
+      runInAction(() => {
+        this.deployments = allDeployments;
         this.loading = false;
         this.deploymentsLoaded = true;
       });
     } catch (ex) {
-      if (isPaginationRequest) {
-        runInAction(() => {
-          this.deploymentsHasNextPage = false;
-          this.deploymentsPage = Math.max(1, this.deploymentsPage - 1);
-          this.loading = false;
-        });
-        return;
-      }
       runInAction(() => {
         this.loading = false;
       });

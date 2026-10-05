@@ -97,7 +97,7 @@ class ProjectsPage extends React.Component<Props, State> {
     await this.loadData(showLoading);
     this.pollTimeout = window.setTimeout(() => {
       this.pollData(false);
-    }, configLoader.config.requestPollTimeout);
+    }, configLoader.config.listPollTimeout || configLoader.config.requestPollTimeout);
   }
 
   async loadData(showLoading: boolean) {
