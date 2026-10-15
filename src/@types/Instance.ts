@@ -98,4 +98,18 @@ export type UserScriptTarget = {
 
 export const InstanceUtils = {
   shortenId: (id: string) => id.replace(/(^.*?)-.*-(.*$)/, "$1-...-$2"),
+
+  formatDiskSize: (sizeBytes?: number | null): string | null => {
+    if (!sizeBytes || !Number.isFinite(sizeBytes) || sizeBytes < 0) {
+      return null;
+    }
+    const units = ["B", "KiB", "MiB", "GiB", "TiB", "PiB"];
+    let size = sizeBytes;
+    let unitIndex = 0;
+    while (size >= 1024 && unitIndex < units.length - 1) {
+      size /= 1024;
+      unitIndex += 1;
+    }
+    return `${Number(size.toFixed(2))} ${units[unitIndex]}`;
+  },
 };
