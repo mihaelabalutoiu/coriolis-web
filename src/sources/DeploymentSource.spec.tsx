@@ -53,9 +53,22 @@ describe("DeploymentSource.getAllDeployments", () => {
     const result = await DeploymentSource.getAllDeployments();
 
     expect(result).toHaveLength(112);
-    expect(result.map(d => d.id)).toEqual(
-      expect.arrayContaining(["a-0", "a-49", "b-0", "b-49", "c-0", "c-11"]),
-    );
+    expect(result[0].id).toBe("a-0");
+    expect(result[111].id).toBe("c-11");
+  });
+
+  it("keeps the backend order, also for deployments never updated", async () => {
+    const deployments = [
+      { id: "d-3", created_at: "2026-10-03", updated_at: null },
+      { id: "d-2", created_at: "2026-10-02", updated_at: "2026-10-04" },
+      { id: "d-1", created_at: "2026-10-01", updated_at: null },
+    ];
+    send.mockResolvedValueOnce({ data: { deployments } });
+
+    const result = await DeploymentSource.getAllDeployments();
+
+    expect(result.map(d => d.id)).toEqual(["d-3", "d-2", "d-1"]);
+    expect(urlsOf()[0]).not.toContain("sort_key");
   });
 
   it("requests the configured batch size on every call", async () => {

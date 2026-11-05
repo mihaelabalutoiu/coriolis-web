@@ -38,8 +38,11 @@ const conf: Config = {
   listPollTimeout: 15000,
 
   // The `limit` per request when collecting a full list. Independent of how
-  // many items the UI shows per page (`defaultListItemsPerPage`). Raise it
-  // on large installations to walk the list in fewer requests.
+  // many items the UI shows per page (`defaultListItemsPerPage`). A list is
+  // collected in at most 100 requests (`DEFAULT_MAX_FETCH_BATCHES`), so a list
+  // longer than 100 times this value (10000 by default) fails to load. Raise
+  // it, for example through the `config` field of `ui-mod-sample.json`, on
+  // installations with more transfers or deployments than that.
   fullListFetchBatchSize: 100,
 
   // The timeout for an inactive user session (in ms). Set 0 to disable.
