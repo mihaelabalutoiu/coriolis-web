@@ -40,6 +40,7 @@ import networkStore from "@src/stores/NetworkStore";
 import notificationStore from "@src/stores/NotificationStore";
 import providerStore, {
   getFieldChangeOptions,
+  getStaleRelistDependentValues,
 } from "@src/stores/ProviderStore";
 import transferStore from "@src/stores/TransferStore";
 import scheduleStore from "@src/stores/ScheduleStore";
@@ -589,11 +590,59 @@ class WizardPage extends React.Component<Props, State> {
         useCache: useCache !== false,
         requiresWindowsImage: this.requiresWindowsImage,
       });
+      this.pruneStaleRelistDependentValues({
+        field,
+        type,
+        parentFieldName,
+        providerName: endpoint.type,
+      });
     } catch (err) {
       this.setState({ nextButtonDisabled: true });
     }
 
     wizardStore.fillWithDefaultValues(type, getSchema());
+  }
+
+  pruneStaleRelistDependentValues(opts: {
+    field?: Field;
+    type: "source" | "destination";
+    parentFieldName?: string;
+    providerName: ProviderTypes;
+  }) {
+    const { field, type, parentFieldName, providerName } = opts;
+    // Only prune after a user change, not during the initial options loading.
+    // If a newer options request is still loading (ex.: the field was changed
+    // again), the listed options are not final yet, so leave it to that one.
+    const isLoadingNewerOptions =
+      type === "source"
+        ? providerStore.sourceOptionsSecondaryLoading
+        : providerStore.destinationOptionsSecondaryLoading;
+    if (!field || isLoadingNewerOptions) {
+      return;
+    }
+    const data =
+      (type === "source"
+        ? wizardStore.data.sourceOptions
+        : wizardStore.data.destOptions) || {};
+    const prunedValues = getStaleRelistDependentValues({
+      providerName,
+      type,
+      fieldName: parentFieldName || field.name,
+      schema:
+        type === "source"
+          ? providerStore.sourceSchema
+          : providerStore.destinationSchema,
+      getValue: fieldName => data[fieldName],
+    });
+    if (!prunedValues) {
+      return;
+    }
+    wizardStore.updateData(
+      type === "source"
+        ? { sourceOptions: { ...data, ...prunedValues } }
+        : { destOptions: { ...data, ...prunedValues } },
+    );
+    wizardStore.updateUrlState();
   }
 
   async loadDataForPage(page: WizardPageType) {

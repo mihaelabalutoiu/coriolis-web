@@ -7,6 +7,9 @@ type ExtraOption = {
   types: Type[];
   requiredFields: string[];
   relistFields?: string[];
+  // Array fields whose selected values are filtered against the newly listed
+  // options after one of the `relistFields` is changed by the user.
+  relistDependentFields?: string[];
   requiredValues?: {
     field: string;
     values: string[];

@@ -21,6 +21,7 @@ import configLoader from "@src/utils/Config";
 import { providerTypes } from "@src/constants";
 import { OptionsSchemaPlugin } from "@src/plugins";
 import type { OptionValues } from "@src/@types/Endpoint";
+import { findEnumItem } from "@src/@types/Field";
 import type { Field } from "@src/@types/Field";
 import type { Providers, ProviderTypes } from "@src/@types/Providers";
 import ObjectUtils from "@src/utils/ObjectUtils";
@@ -108,6 +109,40 @@ export const getFieldChangeOptions = (config: {
     setEnvDataValue(fn);
   });
   return envData;
+};
+
+export const getStaleRelistDependentValues = (config: {
+  providerName: string;
+  type: "source" | "destination";
+  fieldName: string;
+  schema: Field[];
+  getValue: (fieldName: string) => any;
+}): { [fieldName: string]: any[] } | null => {
+  const { providerName, type, fieldName, schema, getValue } = config;
+  const providerWithEnvOptions = configLoader.config.extraOptionsApiCalls.find(
+    p => p.name === providerName && p.types.find(t => t === type),
+  );
+  if (
+    !providerWithEnvOptions?.relistDependentFields ||
+    !providerWithEnvOptions.relistFields?.find(fn => fn === fieldName)
+  ) {
+    return null;
+  }
+
+  const prunedValues: { [fieldName: string]: any[] } = {};
+  providerWithEnvOptions.relistDependentFields.forEach(dependentFieldName => {
+    const schemaField = schema.find(f => f.name === dependentFieldName);
+    const values = getValue(dependentFieldName);
+    // Without listed options, we can't tell which values are stale.
+    if (!schemaField?.enum || !Array.isArray(values)) {
+      return;
+    }
+    const validValues = values.filter(v => findEnumItem(schemaField.enum, v));
+    if (validValues.length !== values.length) {
+      prunedValues[dependentFieldName] = validValues;
+    }
+  });
+  return Object.keys(prunedValues).length ? prunedValues : null;
 };
 
 class ProviderStore {

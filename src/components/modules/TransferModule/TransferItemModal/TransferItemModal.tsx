@@ -18,6 +18,7 @@ import styled from "styled-components";
 
 import providerStore, {
   getFieldChangeOptions,
+  getStaleRelistDependentValues,
 } from "@src/stores/ProviderStore";
 import transferStore from "@src/stores/TransferStore";
 import endpointStore from "@src/stores/EndpointStore";
@@ -569,14 +570,18 @@ class TransferItemModal extends React.Component<Props, State> {
     if (!changedEnvData) {
       return;
     }
-    providerStore.getOptionsValues({
-      optionsType: type,
-      endpointId: endpoint.id,
-      providerName: endpoint.type,
-      useCache,
-      envData,
-      requiresWindowsImage: this.requiresWindowsImage,
-    });
+    providerStore
+      .getOptionsValues({
+        optionsType: type,
+        endpointId: endpoint.id,
+        providerName: endpoint.type,
+        useCache,
+        envData,
+        requiresWindowsImage: this.requiresWindowsImage,
+      })
+      .then(() => {
+        this.pruneStaleRelistDependentValues({ field, type, parentFieldName });
+      });
     if (type === "destination") {
       networkStore.loadNetworks(endpoint.id, envData, { cache: true });
       if (this.hasStorageMap()) {
@@ -584,6 +589,65 @@ class TransferItemModal extends React.Component<Props, State> {
           cache: true,
         });
       }
+    }
+  }
+
+  pruneStaleRelistDependentValues(opts: {
+    field?: Field;
+    type: "source" | "destination";
+    parentFieldName?: string;
+  }) {
+    const { field, type, parentFieldName } = opts;
+    // Only prune after a user change, not while loading the saved options.
+    // If a newer options request is still loading (ex.: the field was changed
+    // again), the listed options are not final yet, so leave it to that one.
+    const isLoadingNewerOptions =
+      type === "source"
+        ? providerStore.sourceOptionsSecondaryLoading
+        : providerStore.destinationOptionsSecondaryLoading;
+    if (!field || isLoadingNewerOptions) {
+      return;
+    }
+    const endpoint =
+      type === "source"
+        ? this.props.sourceEndpoint
+        : this.props.destinationEndpoint;
+    const stateData =
+      type === "source" ? this.state.sourceData : this.state.destinationData;
+    const transferData: any =
+      type === "source"
+        ? this.props.transfer.source_environment
+        : this.props.transfer.destination_environment;
+    const prunedValues = getStaleRelistDependentValues({
+      providerName: endpoint.type,
+      type,
+      fieldName: parentFieldName || field.name,
+      schema:
+        type === "source"
+          ? providerStore.sourceSchema
+          : providerStore.destinationSchema,
+      getValue: fieldName =>
+        stateData[fieldName] !== undefined
+          ? stateData[fieldName]
+          : transferData?.[fieldName],
+    });
+    if (!prunedValues) {
+      return;
+    }
+    if (type === "source") {
+      this.setState(
+        prevState => ({
+          sourceData: { ...prevState.sourceData, ...prunedValues },
+        }),
+        () => this.validateOptions(type),
+      );
+    } else {
+      this.setState(
+        prevState => ({
+          destinationData: { ...prevState.destinationData, ...prunedValues },
+        }),
+        () => this.validateOptions(type),
+      );
     }
   }
 
@@ -679,12 +743,11 @@ class TransferItemModal extends React.Component<Props, State> {
         ? this.props.transfer.source_environment
         : this.props.transfer.destination_environment;
     if (field.type === "array") {
-      const currentValues: string[] = data[field.name] || [];
       const oldValues: string[] = transferData[field.name] || [];
-      let values: string[] = currentValues;
-      if (!currentValues.length) {
-        values = [...oldValues];
-      }
+      // Only fall back to the saved values if the field wasn't edited yet. An
+      // empty array is a valid edit (ex.: all values deselected or pruned).
+      const values: string[] =
+        data[field.name] !== undefined ? data[field.name] : [...oldValues];
       if (values.find(v => v === value)) {
         data[field.name] = values.filter(v => v !== value);
       } else {

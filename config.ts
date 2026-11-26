@@ -176,6 +176,7 @@ const conf: Config = {
       types: ["destination"],
       requiredFields: [],
       relistFields: ["project"],
+      relistDependentFields: ["security_groups"],
     },
   ],
 
