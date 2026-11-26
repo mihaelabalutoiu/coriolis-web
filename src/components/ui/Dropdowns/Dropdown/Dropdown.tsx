@@ -784,13 +784,12 @@ class Dropdown extends React.Component<Props, State> {
           this.props.selectedItems.length > 0
         ) {
           return this.props.selectedItems
-            .map(i =>
-              this.getLabel(
-                this.props.items.find(
-                  item => this.getValue(item) === this.getValue(i),
-                ),
-              ),
-            )
+            .map(i => {
+              const item = this.props.items.find(
+                listItem => this.getValue(listItem) === this.getValue(i),
+              );
+              return item ? this.getLabel(item) : this.getValue(i);
+            })
             .join(", ");
         }
         return this.getLabel(this.props.selectedItem);
